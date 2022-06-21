@@ -10,10 +10,12 @@ from sequenceGenerator.sequenceGenerator import field_print_label_sequence, fiel
 
 
 class HomeFrame(tk.Frame):
-    def __init__(self, con, bg_colour, fonts, sizes, master, modify_home_threading, novelty_population=None):
+    def __init__(self, show_debug_fn, con, bg_colour, fonts, sizes, master, modify_home_threading, novelty_population=None):
         super().__init__(con)
         self.novelty_population = novelty_population
         self.threadSafe = modify_home_threading
+
+        self.show_debug_fn = show_debug_fn
 
         self.floor_data = {}
         self.fg_platforms = {
@@ -71,9 +73,10 @@ class HomeFrame(tk.Frame):
                                      font=f"{fonts} {sizes}",
                                      bg=bg_colour)
 
-
-        start_sequence_button = tk.Button(self, text="Start sequence", command=self.start_sequence)
+        start_sequence_button = tk.Button(self, text="Start one sequence", command=self.start_sequence)
+        start_multiple_sequence_button = tk.Button(self, text="Start multiple sequence", command=self.start_sequence)
         stop_sequence_button = tk.Button(self, text="Stop sequence", command=self.stop_sequence)
+        show_debug = tk.Button(self, text="Logging", command=self.show_debug_fn)
 
         self.register_frame_button.pack(in_=self.top_frame, pady=4, anchor=tk.CENTER)
         self.movements_frame_button.pack(in_=self.top_frame, pady=4, anchor=tk.CENTER)
@@ -84,6 +87,8 @@ class HomeFrame(tk.Frame):
                                            side=tk.RIGHT)
 
         start_sequence_button.pack(in_=self.bottom_frame, side=tk.LEFT, pady=30, padx=8)
+        # start_multiple_sequence_button.pack(in_=self.bottom_frame, side=tk.LEFT, pady=30, padx=8)
+        # show_debug.pack(in_=self.bottom_frame, side=tk.LEFT, pady=30, padx=8)
         stop_sequence_button.pack(in_=self.bottom_frame, side=tk.RIGHT, pady=30, padx=8)
 
     def clear_devices_frame(self):
@@ -192,6 +197,10 @@ class HomeFrame(tk.Frame):
                 self.sequence_generator.run_sequence(data_aux, functions_aux, self.threadSafe, selectedSequence=sequence)
         else:
             print("No available movements")
+
+    def stop_sequence(self):
+        self.sequence_generator.stop_sequence()
+        self.erase_ongoing_label()
 
     def stop_sequence(self):
         self.sequence_generator.stop_sequence()

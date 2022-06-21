@@ -50,6 +50,8 @@ class ParametersFrame(tk.Frame):
         self.floor_data_aux = {}
 
         self.master = master
+        general_x_pad = 15
+        frame_x_pad = 180
 
         self.bottom_frame = tk.Frame(self, bg=bg_colour)
         self.top_frame = tk.Frame(self, bg=bg_colour)
@@ -61,7 +63,7 @@ class ParametersFrame(tk.Frame):
         for i in range(tools_BF.SEQUENCE_TYPES):
             top_parameters_below = tk.Frame(self, bg=bg_colour)
 
-            self.label = tk.Label(self, text=f"Robots in floor nº{i + 1}: ", padx=15, pady=4,
+            self.label = tk.Label(self, text=f"Robots in floor nº{i + 1}: ", padx=general_x_pad, pady=4,
                                   font=f"{fonts} {sizes}",
                                   bg=bg_colour)
             self.label.pack(in_=top_parameters_below, side=tk.LEFT)
@@ -70,10 +72,10 @@ class ParametersFrame(tk.Frame):
             self.entries[i].pack(in_=top_parameters_below, side=tk.LEFT)
             self.entries[i].insert(0, str(self.floor_data[i]))
 
-            top_parameters_below.pack(in_=self.top_frame, side=tk.TOP, fill="x", expand=False, padx=90, pady=3)
+            top_parameters_below.pack(in_=self.top_frame, side=tk.TOP, fill="x", expand=False, padx=frame_x_pad, pady=3)
 
         self.frame_max_delay = tk.Frame(self, bg=bg_colour)
-        self.label_max_delay = tk.Label(self, text=f"Max delay : ", padx=15, pady=4,
+        self.label_max_delay = tk.Label(self, text=f"Max delay : ", padx=general_x_pad, pady=4,
                                         font=f"{fonts} {sizes}",
                                         bg=bg_colour)
 
@@ -83,10 +85,10 @@ class ParametersFrame(tk.Frame):
         self.entry_max_delay.pack(in_=self.frame_max_delay, side=tk.LEFT)
         self.entry_max_delay.insert(0, str(self.max_delay))
 
-        self.frame_max_delay.pack(in_=self.top_frame, side=tk.TOP, fill="x", expand=False, padx=90, pady=3)
+        self.frame_max_delay.pack(in_=self.top_frame, side=tk.TOP, fill="x", expand=False, padx=frame_x_pad, pady=3)
 
         self.frame_min_delay = tk.Frame(self, bg=bg_colour)
-        self.label_min_delay = tk.Label(self, text=f"Min delay : ", padx=15, pady=4,
+        self.label_min_delay = tk.Label(self, text=f"Min delay : ", padx=general_x_pad, pady=4,
                                         font=f"{fonts} {sizes}",
                                         bg=bg_colour)
 
@@ -96,7 +98,7 @@ class ParametersFrame(tk.Frame):
         self.entry_min_delay.pack(in_=self.frame_min_delay, side=tk.LEFT)
         self.entry_min_delay.insert(0, str(self.min_delay))
 
-        self.frame_min_delay.pack(in_=self.top_frame, side=tk.TOP, fill="x", expand=False, padx=90, pady=3)
+        self.frame_min_delay.pack(in_=self.top_frame, side=tk.TOP, fill="x", expand=False, padx=frame_x_pad, pady=3)
 
         self.home_b = tools_BF.HomeButton(home_frame, self, self.bottom_frame, "black", None, self.show_home)
         self.home_frame = home_frame
