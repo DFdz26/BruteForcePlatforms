@@ -12,5 +12,4 @@ src/real_robot_interface_py/real_robot_interface_py/__pycache__/__init__.cpython
 src/real_robot_interface_py/real_robot_interface_py/__pycache__/robot_interface.cpython-38.pyc
 src/dataHandling/__pycache__/data_utilities.cpython-38.pyc
 **/.idea
-.idea
 **/__pycache__
