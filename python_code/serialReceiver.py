@@ -16,7 +16,7 @@ def lists_available_ports():
 
 
 class SerialReceiver(Thread):
-    def __init__(self, port_name, baudrate=9600, timeout=None):
+    def __init__(self, port_name, baudrate=9600, timeout=None, debug_serial=None):
         Thread.__init__(self)
 
         self.previous_time = time.time()
@@ -32,6 +32,7 @@ class SerialReceiver(Thread):
         self.internTimeout = 9000 / 1000   # Seconds
         self.sleep = 1 / 1000   # Seconds
         self.started = False
+        self.debug_serial = debug_serial
 
     def get_started(self):
         return self.started
@@ -49,7 +50,10 @@ class SerialReceiver(Thread):
         if len(self.raw_messages) != 0:
             ret = self.raw_messages.pop(0)
 
-            print(f'Received: {ret}')
+            if self.debug_serial is None:
+                print(f'Received: {ret}')
+            else:
+                self.debug_serial.write_data(f'Received: {ret}')
 
         return ret
 
@@ -58,7 +62,11 @@ class SerialReceiver(Thread):
         self.port.write(message + self.eofl)
         self.port.flush()
         self.mutex_port.release()
-        print(f'Sent: {message}')
+
+        if self.debug_serial is None:
+            print(f'Sent: {message}')
+        else:
+            self.debug_serial.write_data(f'Sent: {message}')
 
     def terminate_process(self):
         self.terminate = True
@@ -68,9 +76,16 @@ class SerialReceiver(Thread):
 
         if not self.port.is_open:
             self.open_port()
-            print('Port opened')
+            if self.debug_serial is None:
+                print('Port opened')
+            else:
+                self.debug_serial.write_data('Port opened')
 
-        print('Running')
+        if self.debug_serial is None:
+            print('Running')
+        else:
+            self.debug_serial.write_data('Running')
+
         while not self.terminate:
             if self.port.inWaiting() > 0:
                 self.mutex_port.acquire()
@@ -80,11 +95,14 @@ class SerialReceiver(Thread):
                 if aux != b'':
                     self.buffer += aux
                     self.previous_time = time.time()
-                    print(aux)
+
+                    if self.debug_serial is None:
+                        print(f'{aux}')
+                    else:
+                        self.debug_serial.write_data(f'{aux}')
 
                 if self.eofl == self.buffer[-len(self.eofl):]:
                     self.raw_messages.append(self.buffer[:-len(self.eofl)])
-                    print(self.raw_messages)
                     self.buffer = b''
 
             elif self.internTimeout > (time.time() - self.previous_time):

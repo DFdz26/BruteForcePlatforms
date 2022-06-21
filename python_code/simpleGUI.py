@@ -10,6 +10,7 @@ from graphicBuilder.parameters_frame import load_parameters_file
 import bruteForceMaster as bfm
 import noveltySearch
 import graphicBuilder.serial_picker as serial_picker_frame
+import graphicBuilder.debugColumn as debug_frame
 
 DEBUGGING = True
 if DEBUGGING:
@@ -67,6 +68,8 @@ root = ttk.Tk()
 root.configure(bg=bg_colour)
 
 bottom_root = ttk.Frame(root)
+bottom_root_right = ttk.Frame(root)
+bottom_root_left = ttk.Frame(root)
 bottom_root_real = ttk.Frame(root)
 top_root = ttk.Frame(root)
 
@@ -76,9 +79,26 @@ bottom_root_real.configure(bg=bg_colour)
 
 top_root.pack(side=ttk.TOP)
 bottom_root.pack(fill="both", expand=True)
+bottom_root_left.pack(in_=bottom_root, side=ttk.LEFT, fill="both", expand=True)
+debug_visible = False
+debug_fr = debug_frame.DebugColumn(bottom_root_right, True)
 
 label = ttk.Label(root, text="!BruteForce", padx=15, font=f"{font_title} {font_size_title}", bg=bg_colour)
 label.pack(in_=top_root, side=ttk.LEFT)
+
+
+def show_debug_window():
+    global debug_visible
+
+    if debug_visible:
+        debug_visible = False
+        bottom_root_right.forget()
+        root.geometry(f"{width_window}x{height_window}")
+    else:
+        debug_visible = True
+        root.geometry(f"{width_window + 100}x{height_window}")
+        bottom_root_right.pack(in_=bottom_root, side=ttk.RIGHT, fill="both", expand=True)
+
 
 if USE_GIF:
     molecule_label = ttk.Label(top_root, bg=bg_colour)
@@ -90,7 +110,7 @@ root.protocol('WM_DELETE_WINDOW', lambda: onclose(root, True))
 f_d, _, _ = load_parameters_file()
 noveltyPop = noveltySearch.NoveltySearchBF()
 
-bFM = bfm.BruteForceMaster(f_d, )
+bFM = bfm.BruteForceMaster(f_d)
 
 master = {
     "object": bruteForceMaster.BruteForceMaster(None, tools_BF.baud_arduino, communication_port),
@@ -113,7 +133,8 @@ modify_home_frame = {
 }
 
 home_frame = hom_frame.HomeFrame(
-    bottom_root,
+    show_debug_window,
+    bottom_root_left,
     bg_colour_home_frame,
     font_title,
     "12",
@@ -122,12 +143,13 @@ home_frame = hom_frame.HomeFrame(
     noveltyPop
 )
 
-mov_fr = mov_frame.MovementsFrame(root, home_frame, bottom_root, bg_colour_movement_frame, font_title, "12", bFM_master)
-serial_fr = serial_picker_frame.SerialListFrame(root, home_frame, bottom_root, bg_colour_movement_frame, font_title, "12", bFM_master)
+mov_fr = mov_frame.MovementsFrame(root, home_frame, bottom_root_left, bg_colour_movement_frame, font_title, "12", bFM_master)
+serial_fr = serial_picker_frame.SerialListFrame(root, home_frame, bottom_root_left, bg_colour_movement_frame, font_title, "12", bFM_master)
 
-parameters_frame = par_frame.ParametersFrame(home_frame, bottom_root, bg_colour_parameters_frame, font_title, "12", bFM_master)
 
-register_frame = ttk.Frame(bottom_root)
+parameters_frame = par_frame.ParametersFrame(home_frame, bottom_root_left, bg_colour_parameters_frame, font_title, "12", bFM_master)
+
+register_frame = ttk.Frame(bottom_root_left)
 
 home_frame.load_frames(None, mov_fr, parameters_frame)
 

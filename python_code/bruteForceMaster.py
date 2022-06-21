@@ -20,7 +20,7 @@ class BruteForceMaster:
     instruction_types = {"stop": 1, "activate": 2}
 
     def __init__(self, available_platforms, baudrate=None, portName=None, master_add=0,
-                 broadcast_address=0xFF, xbeeID_reg=None, assign_new_address=True):
+                 broadcast_address=0xFF, xbeeID_reg=None, assign_new_address=True, debug_serial=None):
         self.types_message = {
             "sign_in": self.ASSIGNED_SIGN_IN_NUMBER,
             "ping": self.ASSIGNED_PING_NUMBER,
@@ -30,6 +30,7 @@ class BruteForceMaster:
             "move_pack": self.ASSIGNED_MOVE_NUMBER
         }
         self.defaultMaxRetries = 3
+        self.debug_serial = debug_serial
 
         """ The dictionary looks like:
         {
@@ -58,8 +59,7 @@ class BruteForceMaster:
         self.new_address = assign_new_address
 
         self.serialReceiver = None
-        if not(portName is None):
-
+        if not (portName is None):
             baudrate = 9600 if baudrate is None else baudrate
             self.serialReceiver = serialReceiver.SerialReceiver(portName, baudrate)
 
@@ -130,12 +130,13 @@ class BruteForceMaster:
         self.change_flag = False
 
     def set_serial_configuration(self, portName, baudrate=9600):
-        self.serialReceiver = serialReceiver.SerialReceiver(portName, baudrate)
+        self.serialReceiver = serialReceiver.SerialReceiver(portName, baudrate, self.debug_serial)
 
     def serialIsSet(self):
-        return not(self.serialReceiver is None)
+        return not (self.serialReceiver is None)
 
     def run(self):
+        # self.debug_serial.write_data('aaaaaaaaaa')
         if self.serialReceiver is None:
             raise ValueError("No serial communication has been set.")
 
@@ -171,7 +172,7 @@ class BruteForceMaster:
             self.send_move_packet_process(type_mov, int(platform), int(floor))
 
     def add_platform_to_free_add(self, floor, platform):
-        if not(floor in self.free_add):
+        if not (floor in self.free_add):
             self.free_add[floor] = {}
 
         self.free_add[str(floor)].append(platform)
@@ -181,9 +182,9 @@ class BruteForceMaster:
         floor, platform = self.parse_sign_out_packet(mes, full_message)
 
         if self.__check_platform_floor_active__(floor, platform):
-                _ = self.active_devices[str(floor)].pop(str(platform))
-                self.add_platform_to_free_add(floor, platform)
-                self.change_flag = True
+            _ = self.active_devices[str(floor)].pop(str(platform))
+            self.add_platform_to_free_add(floor, platform)
+            self.change_flag = True
         elif platform in self.inactive_devices:
             self.inactive_devices.remove(platform)
             self.change_flag = True
@@ -193,7 +194,11 @@ class BruteForceMaster:
 
         if platform is not None:
             aux_str = 'busy' if busy else 'free'
-            print(f'Platform nº {platform} in the floor nº {floor} is {aux_str}')
+
+            if not (self.debug_serial is None):
+                self.debug_serial.write_data(f'Platform nº {platform} in the floor nº {floor} is {aux_str}')
+            else:
+                print(f'Platform nº {platform} in the floor nº {floor} is {aux_str}')
 
             self.active_devices[str(floor)][str(platform)]["busy"] = busy
             self.change_flag = True
@@ -208,7 +213,11 @@ class BruteForceMaster:
 
     def sign_in_process(self, message, full_message=False):
         serialNumberHigh, serialNumberLow = self.parse_sign_in_packet(message, full_message)
-        print(f'NumH: {serialNumberHigh}, NumL: {serialNumberLow}')
+
+        if not (self.debug_serial is None):
+            self.debug_serial.write_data(f'NumH: {serialNumberHigh}, NumL: {serialNumberLow}')
+        else:
+            print(f'NumH: {serialNumberHigh}, NumL: {serialNumberLow}')
 
         if serialNumberHigh is not None:
             platform = 0
@@ -238,7 +247,7 @@ class BruteForceMaster:
                     "n_platform": -1,
                     "floor": -1,
                     "active": active,
-                    }
+                }
 
                 if not (str(floor) in self.list_pending_devices):
                     self.list_pending_devices[str(floor)] = {}
@@ -262,8 +271,13 @@ class BruteForceMaster:
             aux_plat = f"I will send to all {platform}th robots the following data:"
         else:
             aux_plat = f'I will send to the platform nº {platform} in the floor {floor} the data:'
-        print(aux_plat)
-        movement_data = load_data.random_generate_data(3)
+
+        if not (self.debug_serial is None):
+            self.debug_serial.write_data(aux_plat)
+        else:
+            print(aux_plat)
+
+        movement_data = load_data.random_generate_data(3, raw_data=(type_m == 5))
         packet = self.build_move_packet_process(type_m, movement_data, platform, floor)
 
         if not (packet is None):
@@ -335,7 +349,11 @@ class BruteForceMaster:
                         if self.list_pending_devices[floor][platform]["retries"] < maxRetries:
                             pack = self.build_sign_in_packet(selected["high"], selected["low"], selected["active"],
                                                              int(floor), int(platform))
-                            print(f'Pack: {pack}')
+
+                            if not (self.debug_serial is None):
+                                self.debug_serial.write_data(f'Pack: {pack}')
+                            else:
+                                print(f'Pack: {pack}')
 
                             self.__sending_data__(self.serialReceiver, pack)
 
@@ -361,7 +379,11 @@ class BruteForceMaster:
                 floor = efp["floor"]
                 platform = efp["platform"]
 
-                print(f"Max retries trying to connect with Xbee: {selected['high']}, {selected['low']}")
+                if not (self.debug_serial is None):
+                    self.debug_serial.write_data(
+                        f"Max retries trying to connect with Xbee: {selected['high']}, {selected['low']}")
+                else:
+                    print(f"Max retries trying to connect with Xbee: {selected['high']}, {selected['low']}")
 
                 if selected["active"]:
                     self.add_platform_to_free_add(int(floor), int(platform))
@@ -384,7 +406,8 @@ class BruteForceMaster:
                     if diff_time > self.send_again_time:
 
                         if selected["mes"] == self.ASSIGNED_BUSY_NUMBER:
-                            pack = self.build_move_packet_process(selected["values"]["type"], selected["values"]["data"],
+                            pack = self.build_move_packet_process(selected["values"]["type"],
+                                                                  selected["values"]["data"],
                                                                   int(platform), int(floor))
 
                             self.__sending_data__(self.serialReceiver, pack)
@@ -403,7 +426,10 @@ class BruteForceMaster:
 
         if floor is not None:
 
-            print(f'Platform nº {platform} in floor nº {floor} is online.')
+            if not (self.debug_serial is None):
+                self.debug_serial.write_data(f'Platform nº {platform} in floor nº {floor} is online.')
+            else:
+                print(f'Platform nº {platform} in floor nº {floor} is online.')
 
             if self.__check_device_in_pending__(floor, platform):
                 self.activate_from_pending_process(floor, platform)
@@ -676,9 +702,6 @@ class BruteForceMaster:
         if dest_floor is None:
             dest_floor = self.broadcast_address
 
-        print(dest_floor, dest_platform, self.master_address)
-        print(type(dest_floor), type(dest_platform), type(self.master_address))
-
         return struct.pack(self.little_big_endian + 'B B B', dest_floor, dest_platform, self.master_address)
 
     def __check_address__(self, mess):
@@ -708,7 +731,7 @@ class BruteForceMaster:
         serialPort.send_message(message)
 
     def __del__(self):
-        if not(self.serialReceiver is None):
+        if not (self.serialReceiver is None):
             self.serialReceiver.terminate_process()
 
             if self.serialReceiver.get_started():
