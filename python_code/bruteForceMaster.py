@@ -59,8 +59,7 @@ class BruteForceMaster:
         self.new_address = assign_new_address
 
         self.serialReceiver = None
-        if not(portName is None):
-
+        if not (portName is None):
             baudrate = 9600 if baudrate is None else baudrate
             self.serialReceiver = serialReceiver.SerialReceiver(portName, baudrate)
 
@@ -134,7 +133,7 @@ class BruteForceMaster:
         self.serialReceiver = serialReceiver.SerialReceiver(portName, baudrate, self.debug_serial)
 
     def serialIsSet(self):
-        return not(self.serialReceiver is None)
+        return not (self.serialReceiver is None)
 
     def run(self):
         # self.debug_serial.write_data('aaaaaaaaaa')
@@ -173,7 +172,7 @@ class BruteForceMaster:
             self.send_move_packet_process(type_mov, int(platform), int(floor))
 
     def add_platform_to_free_add(self, floor, platform):
-        if not(floor in self.free_add):
+        if not (floor in self.free_add):
             self.free_add[floor] = {}
 
         self.free_add[str(floor)].append(platform)
@@ -183,9 +182,9 @@ class BruteForceMaster:
         floor, platform = self.parse_sign_out_packet(mes, full_message)
 
         if self.__check_platform_floor_active__(floor, platform):
-                _ = self.active_devices[str(floor)].pop(str(platform))
-                self.add_platform_to_free_add(floor, platform)
-                self.change_flag = True
+            _ = self.active_devices[str(floor)].pop(str(platform))
+            self.add_platform_to_free_add(floor, platform)
+            self.change_flag = True
         elif platform in self.inactive_devices:
             self.inactive_devices.remove(platform)
             self.change_flag = True
@@ -196,7 +195,7 @@ class BruteForceMaster:
         if platform is not None:
             aux_str = 'busy' if busy else 'free'
 
-            if not(self.debug_serial is None):
+            if not (self.debug_serial is None):
                 self.debug_serial.write_data(f'Platform nº {platform} in the floor nº {floor} is {aux_str}')
             else:
                 print(f'Platform nº {platform} in the floor nº {floor} is {aux_str}')
@@ -248,7 +247,7 @@ class BruteForceMaster:
                     "n_platform": -1,
                     "floor": -1,
                     "active": active,
-                    }
+                }
 
                 if not (str(floor) in self.list_pending_devices):
                     self.list_pending_devices[str(floor)] = {}
@@ -278,7 +277,7 @@ class BruteForceMaster:
         else:
             print(aux_plat)
 
-        movement_data = load_data.random_generate_data(3)
+        movement_data = load_data.random_generate_data(3, raw_data=(type_m == 5))
         packet = self.build_move_packet_process(type_m, movement_data, platform, floor)
 
         if not (packet is None):
@@ -381,7 +380,8 @@ class BruteForceMaster:
                 platform = efp["platform"]
 
                 if not (self.debug_serial is None):
-                    self.debug_serial.write_data(f"Max retries trying to connect with Xbee: {selected['high']}, {selected['low']}")
+                    self.debug_serial.write_data(
+                        f"Max retries trying to connect with Xbee: {selected['high']}, {selected['low']}")
                 else:
                     print(f"Max retries trying to connect with Xbee: {selected['high']}, {selected['low']}")
 
@@ -406,7 +406,8 @@ class BruteForceMaster:
                     if diff_time > self.send_again_time:
 
                         if selected["mes"] == self.ASSIGNED_BUSY_NUMBER:
-                            pack = self.build_move_packet_process(selected["values"]["type"], selected["values"]["data"],
+                            pack = self.build_move_packet_process(selected["values"]["type"],
+                                                                  selected["values"]["data"],
                                                                   int(platform), int(floor))
 
                             self.__sending_data__(self.serialReceiver, pack)
@@ -730,7 +731,7 @@ class BruteForceMaster:
         serialPort.send_message(message)
 
     def __del__(self):
-        if not(self.serialReceiver is None):
+        if not (self.serialReceiver is None):
             self.serialReceiver.terminate_process()
 
             if self.serialReceiver.get_started():

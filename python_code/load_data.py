@@ -64,7 +64,7 @@ data_arduino = [[803, 68.10, 87.07, 18.97, 2, 1.50],
                 [912, 109.14, 96.79, 12.35, 2, 2.50]]
 
 
-def random_generate_data(required_items, data=None, serial_debug=None):
+def random_generate_data(required_items, data=None, serial_debug=None, raw_data=False):
     if data is None:
         data = data_arduino
     ret = []
@@ -79,17 +79,24 @@ def random_generate_data(required_items, data=None, serial_debug=None):
         # segment2 = 2
         # print(f"For debugging, I'm forcing the value segment2 to be {segment2}. ")
         # print(f"Please in case of not being in debug mode, erase lines 60ish of the file load_data.py")
+        if not raw_data:
+            inflation_time = int(segment1 * 44 + 1000)
+            chamber = int(segment2 % 3)
+            iterations = int(segment3 % 3) + 1
 
-        inflation_time = int(segment1 * 44 + 1000)
-        chamber = int(segment2 % 3)
-        iterations = int(segment3 % 3) + 1
+            inflation_time_filtered = inflation_time
 
-        inflation_time_filtered = inflation_time
+            if MAX_INFLATION_TIME < inflation_time:
+                inflation_time_filtered = MAX_INFLATION_TIME
+            elif MIN_INFLATION_TIME > inflation_time:
+                inflation_time_filtered = MIN_INFLATION_TIME
 
-        if MAX_INFLATION_TIME < inflation_time:
-            inflation_time_filtered = MAX_INFLATION_TIME
-        elif MIN_INFLATION_TIME > inflation_time:
-            inflation_time_filtered = MIN_INFLATION_TIME
+        else:
+            inflation_time = int(segment1)
+            chamber = int(segment2)
+            iterations = int(segment3)
+
+            inflation_time_filtered = inflation_time
 
         if print_data_debug:
             if serial_debug is None:
