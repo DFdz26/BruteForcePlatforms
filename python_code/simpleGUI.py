@@ -38,6 +38,18 @@ font_size_title = 20
 label_devices = []
 show_home_button = None
 
+# In order to change the retry time (the elapsed time before the master will try to send a new message) change
+# this dictionary. "first" key will change the retry time in the first sequence, "second" in the second and so on.
+# They are expressed in seconds. It is recommended to have a minimum of time so the platform (slave) is capable of
+# replaying an ACK message and the master is capable to catch this ACK message.
+retry_times = {
+    'first': 2,
+    'second': 2,
+    'third': 2,
+    'fourth': 2,
+    'fifth': 2,
+}
+
 
 def update(ind, label_img, frame_img, frames_img, maxFrames, fs):
     if loop_active:

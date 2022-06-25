@@ -7,15 +7,27 @@ from graphicBuilder.movements_frame import transform_data_to_dict, load_movement
 from sequenceGenerator.sequenceGenerator import field_available_robots, field_delays, field_max_full_rep, field_movement_type
 from sequenceGenerator.sequenceGenerator import SequenceGenerator, field_choose_sequence
 from sequenceGenerator.sequenceGenerator import field_print_label_sequence, field_erase_label_sequence, field_novelty_population
+from sequenceGenerator.sequenceGenerator import field_retry_time
 
 
 class HomeFrame(tk.Frame):
-    def __init__(self, show_debug_fn, con, bg_colour, fonts, sizes, master, modify_home_threading, novelty_population=None):
+    def __init__(self, show_debug_fn, con, bg_colour, fonts, sizes, master, modify_home_threading,
+                 novelty_population=None, retry_timeouts=None):
         super().__init__(con)
         self.novelty_population = novelty_population
         self.threadSafe = modify_home_threading
 
         self.show_debug_fn = show_debug_fn
+        self.retry_timeouts = retry_timeouts
+
+        if self.retry_timeouts is None:
+            self.retry_timeouts = {
+                'first': 2,
+                'second': 2,
+                'third': 2,
+                'fourth': 2,
+                'fifth': 2,
+            }
 
         self.floor_data = {}
         self.fg_platforms = {
@@ -132,7 +144,10 @@ class HomeFrame(tk.Frame):
     def forget(self):
         self.pack_forget()
 
-    def show(self, options, floor_data=None, sequence_data=None, max_delay=None, min_delay=None):
+    def show(self, options, floor_data=None, sequence_data=None, max_delay=None, min_delay=None, retry_timeouts=None):
+        if not(retry_timeouts is None):
+            self.retry_timeouts = retry_timeouts
+
         if floor_data is not None:
             self.floor_data = floor_data
             self.clear_devices_frame()
@@ -183,7 +198,7 @@ class HomeFrame(tk.Frame):
                     field_delays: [self.min_delay, self.max_delay],
                     field_movement_type: self.movements_available[sequence],
                     field_max_full_rep: 1,
-
+                    field_retry_time: self.retry_timeouts
                 }
                 functions_aux = {
                     field_print_label_sequence: self.write_ongoing_sequence,

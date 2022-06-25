@@ -9,6 +9,7 @@ MAX_SEQUENCES = 5
 field_available_robots = "available_robots"
 field_delays = "delays"
 field_movement_type = "moves"
+field_retry_time = "retry_time"
 field_max_full_rep = "rep"
 field_novelty_population = "novelty"
 field_print_label_sequence = "print_sequence"
@@ -92,7 +93,7 @@ class SequenceGenerator:
         if 0 == len(self.options_copy):
             raise ValueError(f'Before starting fill the options')
 
-        min_delay, max_delay, max_count, available_robots = self.get_individual_data()
+        min_delay, max_delay, max_count, available_robots, retry_time = self.get_individual_data()
         i = 0
 
         while self.read_executing():
@@ -111,7 +112,7 @@ class SequenceGenerator:
                     robot,
                     floor,
                     pending_flag=True,
-                    retry_time=2
+                    retry_time=retry_time['first']
                 )
                 self.master["Lock"].release()
 
@@ -130,7 +131,7 @@ class SequenceGenerator:
         if 0 == len(self.options_copy):
             raise ValueError(f'Before starting fill the options')
 
-        min_delay, max_delay, max_count, available_robots = self.get_individual_data()
+        min_delay, max_delay, max_count, available_robots, retry_time = self.get_individual_data()
         available = self.options_copy[field_available_robots]
         max_len = 0
 
@@ -165,7 +166,7 @@ class SequenceGenerator:
                     robot,
                     self.master["object"].broadcast_address,
                     pending_flag=True,
-                    retry_time=3
+                    retry_time=retry_time['second']
                 )
                 self.master["Lock"].release()
 
@@ -227,7 +228,7 @@ class SequenceGenerator:
         if 0 == len(self.options_copy):
             raise ValueError(f'Before starting fill the options')
 
-        min_delay, max_delay, max_count, available_robots = self.get_individual_data()
+        min_delay, max_delay, max_count, available_robots, retry_time = self.get_individual_data()
 
         i = 0
         delay = 0
@@ -254,7 +255,7 @@ class SequenceGenerator:
                     0xFF,
                     floor,
                     pending_flag=True,
-                    retry_time=2
+                    retry_time=retry_time['third']
                 )
                 self.master["Lock"].release()
 
@@ -278,7 +279,7 @@ class SequenceGenerator:
         print("Forth")
         already_selected = {}
 
-        min_delay, max_delay, max_count, available_robots = self.get_individual_data()
+        min_delay, max_delay, max_count, available_robots, retry_time = self.get_individual_data()
         self.master["Lock"].acquire()
         self.master["object"].send_move_packet_process(1, 0xFF, 0xFF)
         self.master["Lock"].release()
@@ -329,7 +330,7 @@ class SequenceGenerator:
                                                                            device["platform"],
                                                                            device["floor"],
                                                                            pending_flag=True,
-                                                                           retry_time=3)
+                                                                           retry_time=retry_time['fourth'])
                             self.master["Lock"].release()
 
                             self.delay_no_blocking(0.2)
@@ -370,7 +371,7 @@ class SequenceGenerator:
         if 0 == len(self.options_copy):
             raise ValueError(f'Before starting fill the options')
 
-        min_delay, max_delay, max_count, available_robots = self.get_individual_data()
+        min_delay, max_delay, max_count, available_robots, retry_time = self.get_individual_data()
 
         i = 0
         active_robots = {}
@@ -402,7 +403,7 @@ class SequenceGenerator:
                         robot,
                         floor,
                         pending_flag=True,
-                        retry_time=2
+                        retry_time=retry_time['fifth']
                     )
                     self.master["Lock"].release()
 
@@ -512,8 +513,9 @@ class SequenceGenerator:
         min_delay, max_delay = self.options_copy[field_delays]
         max_count = self.options_copy[field_max_full_rep]
         available_robots = self.options_copy[field_available_robots]
+        timeout_retry = self.options_copy[field_retry_time]
 
-        return min_delay, max_delay, max_count, available_robots
+        return min_delay, max_delay, max_count, available_robots, timeout_retry
 
     def __select_delay__(self, min_delay, max_delay, store_next=False, step=False, smax=False):
         if self.novelty_pop is None:
