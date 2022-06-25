@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter.messagebox import showinfo
-import tools_BF
+import tools.tools_BF as tools_BF
 
 
 field_save_movements_data = "mov_data"
@@ -78,7 +78,7 @@ class MovementsFrame(tk.Frame):
 
         self.label_send_move.pack(in_=self.test_movement_frame, side=tk.LEFT)
 
-        self.combobox_mov_types = ttk.Combobox(self, width=3, state="readonly",
+        self.combobox_mov_types = ttk.Combobox(self, width=7, state="readonly",
                                                value=tools_BF.IMPLEMENTED_TYPES)
         self.combobox_mov_types.set('1')
         self.combobox_mov_types.pack(in_=self.test_movement_frame, side=tk.LEFT)
@@ -181,7 +181,13 @@ class MovementsFrame(tk.Frame):
         self.save_b = tools_BF.SaveButton(self, self.save_data, self.bottom_frame)
 
     def send_test(self):
-        mov = int(self.combobox_mov_types.get())
+        mov = self.combobox_mov_types.get()
+
+        if mov in tools_BF.CONVERT_STR_TO_MOV:
+            print("Converted, movements_frame.py 187")
+            mov = tools_BF.CONVERT_STR_TO_MOV[mov]
+
+        mov = int(mov)
         platform = int(self.combobox_platforms.get())
         floor = int(self.combobox_floors.get())
 
@@ -261,7 +267,7 @@ class MovementsFrame(tk.Frame):
             values = [k for k in self.available.keys()]
             set_value = str(values[0])
 
-        self.combobox_floors.set(set_value)
+        self.combobox_floors.set('')
         self.combobox_floors['values'] = values
 
     def show(self, options, floor_data):

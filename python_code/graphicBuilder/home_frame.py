@@ -7,15 +7,28 @@ from graphicBuilder.movements_frame import transform_data_to_dict, load_movement
 from sequenceGenerator.sequenceGenerator import field_available_robots, field_delays, field_max_full_rep, field_movement_type
 from sequenceGenerator.sequenceGenerator import SequenceGenerator, field_choose_sequence
 from sequenceGenerator.sequenceGenerator import field_print_label_sequence, field_erase_label_sequence, field_novelty_population
+from sequenceGenerator.sequenceGenerator import field_retry_time, field_full_movement_types, field_all_delays
 
 
 class HomeFrame(tk.Frame):
-    def __init__(self, show_debug_fn, con, bg_colour, fonts, sizes, master, modify_home_threading, novelty_population=None):
+    def __init__(self, root, show_debug_fn, con, bg_colour, fonts, sizes, master, modify_home_threading,
+                 novelty_population=None, retry_timeouts=None):
         super().__init__(con)
         self.novelty_population = novelty_population
         self.threadSafe = modify_home_threading
+        self.var_send_deflation = tk.IntVar()
 
         self.show_debug_fn = show_debug_fn
+        self.retry_timeouts = retry_timeouts
+
+        if self.retry_timeouts is None:
+            self.retry_timeouts = {
+                'first': 2,
+                'second': 2,
+                'third': 2,
+                'fourth': 2,
+                'fifth': 2,
+            }
 
         self.floor_data = {}
         self.fg_platforms = {
@@ -34,7 +47,7 @@ class HomeFrame(tk.Frame):
         self.sequence_generator = SequenceGenerator(master)
 
         self.configure(bg=bg_colour)
-        self.floor_data_aux, self.max_delay, self.min_delay = load_parameters_file()
+        self.floor_data_aux, self.delay_dic = load_parameters_file()
         self.floor_data = get_transformed_data(self.floor_data_aux)
         mov, seq = load_movements_file()
         self.movements_available = transform_data_to_dict(mov, seq)
@@ -73,8 +86,8 @@ class HomeFrame(tk.Frame):
                                      font=f"{fonts} {sizes}",
                                      bg=bg_colour)
 
-        start_sequence_button = tk.Button(self, text="Start one sequence", command=self.start_sequence)
-        start_multiple_sequence_button = tk.Button(self, text="Start multiple sequence", command=self.start_sequence)
+        start_sequence_button = tk.Button(self, text="Start one sequence", command=self.start_one_sequence)
+        start_multiple_sequence_button = tk.Button(self, text="Start multiple sequence", command=self.start_multiple_sequence)
         stop_sequence_button = tk.Button(self, text="Stop sequence", command=self.stop_sequence)
         show_debug = tk.Button(self, text="Logging", command=self.show_debug_fn)
 
@@ -87,9 +100,12 @@ class HomeFrame(tk.Frame):
                                            side=tk.RIGHT)
 
         start_sequence_button.pack(in_=self.bottom_frame, side=tk.LEFT, pady=30, padx=8)
-        # start_multiple_sequence_button.pack(in_=self.bottom_frame, side=tk.LEFT, pady=30, padx=8)
+        start_multiple_sequence_button.pack(in_=self.bottom_frame, side=tk.LEFT, pady=30, padx=8)
         # show_debug.pack(in_=self.bottom_frame, side=tk.LEFT, pady=30, padx=8)
         stop_sequence_button.pack(in_=self.bottom_frame, side=tk.RIGHT, pady=30, padx=8)
+        self.check_def = tk.Checkbutton(self, text='Send deflation', variable=self.var_send_deflation, onvalue=1,
+                                        offvalue=0)
+        self.check_def.pack(in_=self.bottom_frame, side=tk.RIGHT)
 
     def clear_devices_frame(self):
         for labels in self.label_devices:
@@ -132,7 +148,10 @@ class HomeFrame(tk.Frame):
     def forget(self):
         self.pack_forget()
 
-    def show(self, options, floor_data=None, sequence_data=None, max_delay=None, min_delay=None):
+    def show(self, options, floor_data=None, sequence_data=None, dic_delays=None, max_delay=None, min_delay=None, retry_timeouts=None):
+        if not(retry_timeouts is None):
+            self.retry_timeouts = retry_timeouts
+
         if floor_data is not None:
             self.floor_data = floor_data
             self.clear_devices_frame()
@@ -146,6 +165,9 @@ class HomeFrame(tk.Frame):
             self.max_delay = max_delay
         if min_delay is not None:
             self.min_delay = min_delay
+
+        if dic_delays is not None:
+            self.delay_dic = dic_delays
 
         self.pack(fill="both", expand=True)
 
@@ -166,44 +188,61 @@ class HomeFrame(tk.Frame):
         if self.parameters_frame is not None:
             self.parameters_frame.show(None, self.floor_data)
 
-    def start_sequence(self):
+    def __internal_start_sequence__(self, sequence, data_aux):
         if len(self.movements_available):
-            print(self.min_delay)
+            # print(self.min_delay)
             if self.sequence_started:
                 self.sequence_generator.stop_sequence()
-            print(self.movements_available)
-            sequence = self.__chose_sequence__()
-            print(f"Sequence: {sequence}")
-            available = check_available_devices(self.floor_data)
-            if len(available):
+            # print(self.movements_available)
 
-                print(self.movements_available[sequence])
-                data_aux = {
-                    field_available_robots: available,
-                    field_delays: [self.min_delay, self.max_delay],
-                    field_movement_type: self.movements_available[sequence],
-                    field_max_full_rep: 1,
+            functions_aux = {
+                field_print_label_sequence: self.write_ongoing_sequence,
+                field_erase_label_sequence: self.erase_ongoing_label,
+                field_choose_sequence: self.__chose_sequence__
+            }
 
-                }
-                functions_aux = {
-                    field_print_label_sequence: self.write_ongoing_sequence,
-                    field_erase_label_sequence: self.erase_ongoing_label,
-                    field_choose_sequence: self.__chose_sequence__
-                }
-
-                if not(self.novelty_population is None):
-                    data_aux[field_novelty_population] = self.novelty_population
-
+            if not(self.novelty_population is None):
+                data_aux[field_novelty_population] = self.novelty_population
+            # print(data_aux, sequence)
+            if len(data_aux[field_available_robots]):
                 self.sequence_generator.run_sequence(data_aux, functions_aux, self.threadSafe, selectedSequence=sequence)
         else:
             print("No available movements")
 
-    def stop_sequence(self):
-        self.sequence_generator.stop_sequence()
-        self.erase_ongoing_label()
+    def start_one_sequence(self):
+        available = check_available_devices(self.floor_data)
+        sequence = self.__chose_sequence__()
+
+        # if len(available):
+        print(self.movements_available[sequence])
+        data_aux = {
+            field_available_robots: available,
+            field_all_delays: self.delay_dic,
+            field_movement_type: self.movements_available[sequence],
+            field_max_full_rep: 1,
+            field_retry_time: self.retry_timeouts
+        }
+
+        self.__internal_start_sequence__(sequence, data_aux)
+
+    def start_multiple_sequence(self):
+        available = check_available_devices(self.floor_data)
+
+        # if len(available):
+        data_aux = {
+            field_available_robots: available,
+            field_all_delays: self.delay_dic,
+            field_full_movement_types: self.movements_available,
+            field_max_full_rep: 1,
+            field_retry_time: self.retry_timeouts
+        }
+
+        self.__internal_start_sequence__(None, data_aux)
 
     def stop_sequence(self):
-        self.sequence_generator.stop_sequence()
+        deflation = self.var_send_deflation.get() == 1
+
+        self.sequence_generator.stop_sequence(254, deflation)
         self.erase_ongoing_label()
 
     def write_ongoing_sequence(self, sequence):

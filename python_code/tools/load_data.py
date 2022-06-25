@@ -64,7 +64,58 @@ data_arduino = [[803, 68.10, 87.07, 18.97, 2, 1.50],
                 [912, 109.14, 96.79, 12.35, 2, 2.50]]
 
 
-def random_generate_data(required_items, data=None, serial_debug=None, raw_data=False):
+def transform_data_movement_6(segment1, segment2, segment3):
+    # Bear in mind that inside the arduino code, the received data
+    # will be used as:
+    # inflationTime = ((segment1 + 1) * 44 + 1000) % 25000
+    # chamber = (segment2 + 1) % 3
+    # The third segment is not used
+    # The mentioned lines should be in arduino_code.ino lines 843 and 844
+    # The first returned value can be among 65535 to 0 (int).
+    # The second and third returned value can be among 255 to 0 (int).
+    returned_segment1 = segment1
+    returned_segment2 = segment2
+    returned_segment3 = segment3
+
+    return int(returned_segment1), int(returned_segment2), int(returned_segment3)
+
+
+def transform_data_movement_5(segment1, segment2, segment3):
+    # Bear in mind that inside the arduino code, the received data
+    # will be used as:
+    # inflationTime = data + 1
+    # These lines can be found inside the defined function "dataMove1" (line 937) in arduino_code.ino
+    # The first returned value can be among 65535 to 0 (int).
+    # The second and third returned value can be among 255 to 0 (int).
+    returned_segment1 = segment1
+    returned_segment2 = segment2
+    returned_segment3 = segment3
+
+    return int(returned_segment1), int(returned_segment2), int(returned_segment3)
+
+
+def transform_data_movement_4(segment1, segment2, segment3):
+    # Bear in mind that inside the arduino code, the received data
+    # will be used as:
+    # inflationTime = (data + 1) * 100
+    # These lines can be found inside the defined function "dataMove2" (line 896) in arduino_code.ino
+    # The first returned value can be among 65535 to 0 (int).
+    # The second and third returned value can be among 255 to 0 (int).
+    returned_segment1 = segment1
+    returned_segment2 = segment2
+    returned_segment3 = segment3
+
+    return int(returned_segment1), int(returned_segment2), int(returned_segment3)
+
+
+transformed_data_functions = {
+    4: transform_data_movement_4,
+    5: transform_data_movement_5,
+    6: transform_data_movement_6,
+}
+
+
+def random_generate_data(required_items, data=None, serial_debug=None, raw_data=False, sequence=0):
     if data is None:
         data = data_arduino
     ret = []
@@ -91,26 +142,41 @@ def random_generate_data(required_items, data=None, serial_debug=None, raw_data=
             elif MIN_INFLATION_TIME > inflation_time:
                 inflation_time_filtered = MIN_INFLATION_TIME
 
+            if print_data_debug:
+                if serial_debug is None:
+                    print(f"Chosen: {segment1}, \tInflation time (ms): {inflation_time}",
+                          "" if inflation_time_filtered == inflation_time else f"Filtered value: {inflation_time_filtered}")
+                    print(f"Chosen: {segment2}, \tChamber: {chamber}")
+                    print(f"Chosen: {segment3}, \tIterations: {iterations}")
+                    print("------------")
+                else:
+                    serial_debug.write_data(f"Chosen: {segment1}, \tInflation time (ms): {inflation_time}",
+                                            "" if inflation_time_filtered == inflation_time else f"Filtered value: {inflation_time_filtered}")
+                    serial_debug.write_data(f"Chosen: {segment2}, \tChamber: {chamber}")
+                    serial_debug.write_data(f"Chosen: {segment3}, \tIterations: {iterations}")
+                    serial_debug.write_data("------------")
+
         else:
-            inflation_time = int(segment1)
-            chamber = int(segment2)
-            iterations = int(segment3)
+            if sequence in transformed_data_functions:
+                inflation_time, chamber, iterations = transformed_data_functions[sequence](segment1, segment2, segment3)
+            else:
+                inflation_time = int(segment1)
+                chamber = int(segment2)
+                iterations = int(segment3)
 
             inflation_time_filtered = inflation_time
 
-        if print_data_debug:
-            if serial_debug is None:
-                print(f"Chosen: {segment1}, \tInflation time (ms): {inflation_time}",
-                      "" if inflation_time_filtered == inflation_time else f"Filtered value: {inflation_time_filtered}")
-                print(f"Chosen: {segment2}, \tChamber: {chamber}")
-                print(f"Chosen: {segment3}, \tIterations: {iterations}")
-                print("------------")
-            else:
-                serial_debug.write_data(f"Chosen: {segment1}, \tInflation time (ms): {inflation_time}",
-                                        "" if inflation_time_filtered == inflation_time else f"Filtered value: {inflation_time_filtered}")
-                serial_debug.write_data(f"Chosen: {segment2}, \tChamber: {chamber}")
-                serial_debug.write_data(f"Chosen: {segment3}, \tIterations: {iterations}")
-                serial_debug.write_data("------------")
+            if print_data_debug:
+                if serial_debug is None:
+                    print(f"Chosen: {inflation_time}")
+                    print(f"Chosen: {chamber}")
+                    print(f"Chosen: {iterations}")
+                    print("------------")
+                else:
+                    serial_debug.write_data(f"Chosen: {inflation_time}")
+                    serial_debug.write_data(f"Chosen: {chamber}")
+                    serial_debug.write_data(f"Chosen: {iterations}")
+                    serial_debug.write_data("------------")
 
         aux_ret = {
             "time": inflation_time_filtered,

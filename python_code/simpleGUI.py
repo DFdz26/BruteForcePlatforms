@@ -1,11 +1,10 @@
 import tkinter as ttk
 
-import serialReceiver
-import tools_BF
+import tools.tools_BF as tools_BF
 import graphicBuilder.movements_frame as mov_frame
 import graphicBuilder.home_frame as hom_frame
 import graphicBuilder.parameters_frame as par_frame
-from threading import Thread, Lock
+from threading import Lock
 from graphicBuilder.parameters_frame import load_parameters_file
 import bruteForceMaster as bfm
 import noveltySearch
@@ -24,7 +23,7 @@ USE_GIF = True
 communication_port = 'COM6'
 
 width_window = 550
-height_window = 500
+height_window = 520
 
 bg_colour = "#f8f8f8"
 bg_colour_home_frame = bg_colour
@@ -37,6 +36,19 @@ font_size_title = 20
 
 label_devices = []
 show_home_button = None
+
+# In order to change the retry time (the elapsed time before the master will try to send a new message) change
+# this dictionary. "first" key will change the retry time in the first sequence, "second" in the second and so on.
+# They are expressed in seconds. It is recommended to have a minimum of time so the platform (slave) is capable of
+# replaying an ACK message and the master is capable to catch this ACK message.
+retry_times = {
+    'first': 2,
+    'second': 2,
+    'third': 2,
+    'fourth': 2,
+    'fifth': 2,
+    'stop': 0.2,
+}
 
 
 def update(ind, label_img, frame_img, frames_img, maxFrames, fs):
@@ -107,7 +119,7 @@ if USE_GIF:
 root.title("!BruteForce")
 root.geometry(f"{width_window}x{height_window}")
 root.protocol('WM_DELETE_WINDOW', lambda: onclose(root, True))
-f_d, _, _ = load_parameters_file()
+f_d, _ = load_parameters_file()
 noveltyPop = noveltySearch.NoveltySearchBF()
 
 bFM = bfm.BruteForceMaster(f_d)
@@ -133,6 +145,7 @@ modify_home_frame = {
 }
 
 home_frame = hom_frame.HomeFrame(
+    root,
     show_debug_window,
     bottom_root_left,
     bg_colour_home_frame,
@@ -143,11 +156,35 @@ home_frame = hom_frame.HomeFrame(
     noveltyPop
 )
 
-mov_fr = mov_frame.MovementsFrame(root, home_frame, bottom_root_left, bg_colour_movement_frame, font_title, "12", bFM_master)
-serial_fr = serial_picker_frame.SerialListFrame(root, home_frame, bottom_root_left, bg_colour_movement_frame, font_title, "12", bFM_master)
+mov_fr = mov_frame.MovementsFrame(
+    root,
+    home_frame,
+    bottom_root_left,
+    bg_colour_movement_frame,
+    font_title,
+    "12",
+    bFM_master
+)
 
+serial_fr = serial_picker_frame.SerialListFrame(
+    root,
+    home_frame,
+    bottom_root_left,
+    bg_colour_movement_frame,
+    font_title,
+    "12",
+    bFM_master
+)
 
-parameters_frame = par_frame.ParametersFrame(home_frame, bottom_root_left, bg_colour_parameters_frame, font_title, "12", bFM_master)
+parameters_frame = par_frame.ParametersFrame(
+    root,
+    home_frame,
+    bottom_root_left,
+    bg_colour_parameters_frame,
+    font_title,
+    "12",
+    bFM_master
+)
 
 register_frame = ttk.Frame(bottom_root_left)
 

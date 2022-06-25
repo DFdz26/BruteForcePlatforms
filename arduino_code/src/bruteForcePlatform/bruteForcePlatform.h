@@ -27,6 +27,12 @@ public:
         uint8_t iterations;
     } data_movement_t;
 
+    typedef struct raw_data_t_ {
+        uint16_t first;
+        uint8_t second;
+        uint8_t third;
+    } raw_data_t;
+
     typedef enum __attribute__((packed)) PlatformSate_t_ {
         PLATFORM_NO_ERROR       = 0,
         PLATFORM_NO_MESS        = 1,
@@ -63,6 +69,7 @@ public:
 
     void loadDebugger(proto_debug protoDebug);
     int8_t CopyMovesArgument(data_movement_t* input, uint8_t size);
+    int8_t CopyRawMessage(raw_data_t* input, uint8_t size);
 
 #ifndef EXPOSE_PRIVATE_DEBUG
 private:
@@ -127,6 +134,7 @@ private:
     uint32_t SerialNumberLow;
     uint8_t movementActive;
     data_movement_t argumentsMovement[MAX_ITERATIONS_IN_3RD_MOVEMENT];
+    raw_data_t rawData[MAX_ITERATIONS_IN_3RD_MOVEMENT];
     bool stopOrganic;
     bool busy_device;
 

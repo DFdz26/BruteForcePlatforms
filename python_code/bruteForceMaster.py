@@ -2,7 +2,9 @@ import struct
 import time
 
 import serialReceiver
-import load_data
+import tools.load_data as load_data
+
+raw_sequences = [4, 5, 6]
 
 
 class BruteForceMaster:
@@ -276,8 +278,9 @@ class BruteForceMaster:
             self.debug_serial.write_data(aux_plat)
         else:
             print(aux_plat)
+            print(f"The move is: {type_m}")
 
-        movement_data = load_data.random_generate_data(3, raw_data=(type_m == 5))
+        movement_data = load_data.random_generate_data(3, raw_data=(type_m in raw_sequences), sequence=type_m)
         packet = self.build_move_packet_process(type_m, movement_data, platform, floor)
 
         if not (packet is None):

@@ -6,6 +6,7 @@
 //#define MOVE_CONTINUES
 //#define SERIAL_DEBUG
 #define LOADING_DELAY 5000
+#define DELAY_NEXT_FREE_PACKET 10000
 
 #ifdef SERIAL_DEBUG
 SoftwareSerial xbee(2,3);
@@ -14,6 +15,9 @@ SoftwareSerial xbee(2,3);
 PlatformsBruteForce platform;
 
 unsigned long starting_time = millis();
+bool resend_im_free_pack = false;
+unsigned long start_time_delay_pack = 0;
+float random_number_delay = 0;
 int ant_code = 0;
 
 #ifdef SERIAL_DEBUG
@@ -32,7 +36,7 @@ const int valve3 = 10;
 const int valve4 = 9;
 const long int inflation_time_move_4 = 15000;
 const long int inflation_time_move_5 = 40000;
-
+bool req_pack_in_4_5 = false;
 
 //Data points from "Feeding the Algorithm performance" (2020)
 float data2[13] = {7.98, 11.90, 12.00, 13.70, 11.85, 15.70, 10.90, 16.75, 15.67, 10.05, 11.55, 10.82, 11.35,}; //Duration (mins decimals) for class 0
@@ -67,6 +71,11 @@ void setup() {
   
 void loop() {
 
+  if (((DELAY_NEXT_FREE_PACKET + start_time_delay_pack + random_number_delay) < get_actualTime()) && (resend_im_free_pack)) {
+    resend_im_free_pack = false;
+    platform.SendFreePacket();
+  }
+
   int code = platform.run(get_actualTime());
 
 #ifdef MOVE_CONTINUES
@@ -93,6 +102,9 @@ void loop() {
           Serial.println("Finished");
 #endif
           platform.SendFreePacket();
+          random_number_delay = random(0, 50) / 10;
+          start_time_delay_pack = get_actualTime();
+          resend_im_free_pack = true;
           break;
       
       case 2:
@@ -112,6 +124,9 @@ void loop() {
           Serial.println("Finished");
 #endif
           platform.SendFreePacket();
+          random_number_delay = random(0, 50) / 10;
+          start_time_delay_pack = get_actualTime();
+          resend_im_free_pack = true;
           break;
       case 3:
 #ifdef SERIAL_DEBUG
@@ -130,8 +145,11 @@ void loop() {
           Serial.println("Finished");
 #endif
           platform.SendFreePacket();
+          random_number_delay = random(0, 50) / 10;
+          start_time_delay_pack = get_actualTime();
+          resend_im_free_pack = true;
           break;
-              case 4:
+      case 4:
 #ifdef SERIAL_DEBUG
               Serial.println("4th movement");
 #endif
@@ -148,9 +166,11 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
-              
+              random_number_delay = random(0, 50) / 10;
+              start_time_delay_pack = get_actualTime();
+              resend_im_free_pack = true;
               break;
-              case 5:
+      case 5:
 #ifdef SERIAL_DEBUG
               Serial.println("5th movement");
 #endif
@@ -167,9 +187,11 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
-              
+              random_number_delay = random(0, 50) / 10;
+              start_time_delay_pack = get_actualTime();
+              resend_im_free_pack = true;
               break;
-              case 6:
+      case 6:
 #ifdef SERIAL_DEBUG
               Serial.println("6th movement");
 #endif
@@ -186,8 +208,22 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
-              
+              random_number_delay = random(0, 50) / 10;
+              start_time_delay_pack = get_actualTime();
+              resend_im_free_pack = true;
               break;
+      case 254:
+          platform.SendBusyPacket();
+#ifdef SERIAL_DEBUG
+          Serial.println("deflating platforms");
+#endif
+          deflateAllSimul(120000, true);
+          delay(30000);
+          platform.SendFreePacket();
+          random_number_delay = random(0, 50) / 10;
+          start_time_delay_pack = get_actualTime();
+          resend_im_free_pack = true;
+          break;
       case 255:
           platform.SendBusyPacket();
 #ifdef SERIAL_DEBUG
@@ -195,6 +231,9 @@ void loop() {
 #endif
           deflateAllSimul(30000, true); //Deflates all chambers for 30s as a security measure before initiating inflation (the robot code should always start with this)
           platform.SendFreePacket();
+          random_number_delay = random(0, 50) / 10;
+          start_time_delay_pack = get_actualTime();
+          resend_im_free_pack = true;
           break;          
       default:
 #ifdef SERIAL_DEBUG
@@ -234,6 +273,9 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
+              start_time_delay_pack = get_actualTime();
+              resend_im_free_pack = true;
               break;
 
           case 2:
@@ -253,6 +295,9 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
+              start_time_delay_pack = get_actualTime();
+              resend_im_free_pack = true;
               break;
           case 3:
 #ifdef SERIAL_DEBUG
@@ -271,9 +316,11 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
-              
+              random_number_delay = random(0, 50) / 10;
+              start_time_delay_pack = get_actualTime();
+              resend_im_free_pack = true;
               break;
-              case 4:
+          case 4:
 #ifdef SERIAL_DEBUG
               Serial.println("4th movement");
 #endif
@@ -290,9 +337,11 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
-              
+              random_number_delay = random(0, 50) / 10;
+              start_time_delay_pack = get_actualTime();
+              resend_im_free_pack = true;
               break;
-              case 5:
+          case 5:
 #ifdef SERIAL_DEBUG
               Serial.println("5th movement");
 #endif
@@ -309,9 +358,11 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
-              
+              random_number_delay = random(0, 50) / 10;
+              start_time_delay_pack = get_actualTime();
+              resend_im_free_pack = true;
               break;
-              case 6:
+          case 6:
 #ifdef SERIAL_DEBUG
               Serial.println("6th movement");
 #endif
@@ -328,8 +379,22 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
-              
+              random_number_delay = random(0, 50) / 10;
+              start_time_delay_pack = get_actualTime();
+              resend_im_free_pack = true;
               break;
+        case 254:
+            platform.SendBusyPacket();
+#ifdef SERIAL_DEBUG
+            Serial.println("deflating platforms");
+#endif
+            deflateAllSimul(120000, true);
+            delay(30000);
+            platform.SendFreePacket();
+            random_number_delay = random(0, 50) / 10;
+            start_time_delay_pack = get_actualTime();
+            resend_im_free_pack = true;
+            break;
         case 255:
               platform.SendBusyPacket();
 #ifdef SERIAL_DEBUG
@@ -337,6 +402,9 @@ void loop() {
 #endif
               deflateAllSimul(30000, true); //Deflates all chambers for 30s as a security measure before initiating inflation (the robot code should always start with this)
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
+              start_time_delay_pack = get_actualTime();
+              resend_im_free_pack = true;
               break;
         default:
 #ifdef SERIAL_DEBUG
@@ -758,22 +826,29 @@ bool deflateAllSimul(long deflateTimeAll, bool checkMess) {
 void dataMove3short(){ //
 //DESCRIPTION:  One chamber inflates followed by a second chamber (no jitter with valves)
 
-Serial.println("dataMove3short()");
+//   Serial.println("dataMove3short()");
 
-rapidInflateOneAtATime(1500, 40, 0);
+  rapidInflateOneAtATime(1500, 40, 0);
 
-  
-  long inflatedTime=0;
-  int chamber = 0;
-  PlatformsBruteForce::data_movement_t argMov[MAX_ITERATIONS_IN_3RD_MOVEMENT];
-  
-  platform.CopyMovesArgument(argMov, MAX_ITERATIONS_IN_3RD_MOVEMENT);
+
+  int segment1; //~100
+  int segment2; //~100
+  long int inflationTime = 5000;
+  PlatformsBruteForce::raw_data_t rawData[MAX_ITERATIONS_IN_3RD_MOVEMENT];
+
+  platform.CopyRawMessage(rawData, MAX_ITERATIONS_IN_3RD_MOVEMENT);
   
   digitalWrite(valve4, HIGH); //Open skin layer air inlet
-  
-  inflatedTime = argMov[0].inflation_time;
-  chamber = argMov[0].chamber;
-  movement2(inflatedTime, chamber%3); // [inflation time, chamber] "inflationTime" must be between 5000 to 25000. "%" calculates modulus (the remainder upon division)
+
+  segment1 = rawData[0].first + 1; // Added 1 to prevent zero value
+  segment2 = rawData[0].second + 1;
+
+  inflationTime = segment1 * 44 + 1000;
+  inflationTime %= 25000;
+
+  if (inflationTime < 5000) inflationTime = 5000;
+
+  movement2(inflationTime, segment2 % 3); // [inflation time, chamber] "inflationTime" must be between 5000 to 25000. "%" calculates modulus (the remainder upon division)
   
   deflateAllSimul(40000, false);
 }
@@ -820,27 +895,36 @@ void movement1(long inflationTime, bool wait_and_communicate) { //Round of hills
 
 void dataMove2(long totInflateTime){
 //DESCRIPTION: Each chamber inflated in turn in circular motion (similar to Video #1)
- Serial.println("dataMove2()");
-
-  int segment1; //~100 
-  int segment2; //~100
-  int segment3; //
+//  Serial.println("dataMove2()");
 
   //long totInflateTime = 120000; //27000 max
   long iterInflatedTime = 0;
   long inflationTime = 0;
   uint8_t i = 0;
   uint8_t max_i = 3;
-  PlatformsBruteForce::data_movement_t argMov[MAX_ITERATIONS_IN_3RD_MOVEMENT];
-  
-  platform.CopyMovesArgument(argMov, MAX_ITERATIONS_IN_3RD_MOVEMENT);
+  PlatformsBruteForce::raw_data_t rawData[MAX_ITERATIONS_IN_3RD_MOVEMENT];
+  if (!req_pack_in_4_5) {
+      platform.CopyRawMessage(rawData, MAX_ITERATIONS_IN_3RD_MOVEMENT);
+  }
 
   while (iterInflatedTime < totInflateTime){
+
+    if ((i == 0) && (req_pack_in_4_5)) {
+        platform.CopyRawMessage(rawData, MAX_ITERATIONS_IN_3RD_MOVEMENT);
+    }
     
-    inflationTime = argMov[i].inflation_time;
-    movement1(inflationTime, i==(max_i-1));
-  
+    inflationTime = (rawData[i].first + 1) * 100;
+    movement1(inflationTime, false);
     iterInflatedTime += inflationTime;
+
+    inflationTime = (rawData[i].second + 1) * 100;
+    movement1(inflationTime, false);
+    iterInflatedTime += inflationTime;
+
+    inflationTime = (rawData[i].third + 1) * 100;
+    movement1(inflationTime, ((max_i - 1) == i) && (req_pack_in_4_5));
+    iterInflatedTime += inflationTime;
+
     i++;
     i %= max_i;
   }
@@ -854,106 +938,112 @@ void dataMove1(bool skinLayerAirIn, bool skinLayerPumpOn, bool erraticClicks, lo
 //DESCRIPTION:
 //Maja's suggestion
 //Each chamber is in turn inflated with a tiny amount of air based on data (similar to Video #3)
-Serial.println("dataMove1()");
+// Serial.println("dataMove1()");
 
-  int segment1; //~100 
+  int segment1; //~100
   int segment2; //~100
   int segment3; //
 
   int startColum=1;
   long inflatedTime=0;
-  PlatformsBruteForce::data_movement_t argMov[MAX_ITERATIONS_IN_3RD_MOVEMENT];
+  PlatformsBruteForce::raw_data_t rawData[MAX_ITERATIONS_IN_3RD_MOVEMENT];
+
+  if (!req_pack_in_4_5) {
+      platform.CopyRawMessage(rawData, MAX_ITERATIONS_IN_3RD_MOVEMENT);
+  }
+
+  digitalWrite(valve4, LOW); //Close skin layer air inlet
+
+  while (inflatedTime < totInflateTime){
+
+      if (req_pack_in_4_5) {
+          platform.CopyRawMessage(rawData, MAX_ITERATIONS_IN_3RD_MOVEMENT);
+      }
   
-  platform.CopyMovesArgument(argMov, MAX_ITERATIONS_IN_3RD_MOVEMENT);
-
-digitalWrite(valve4, LOW); //Close skin layer air inlet
-
-while (inflatedTime < totInflateTime){ 
-  
-//First round of data inflations
-  
-  
-  segment1 = argMov[0].inflation_time; //~100 
-  segment2 = argMov[0].chamber; //~100
-  segment3 = argMov[0].iterations; //
+      //First round of data inflations
+      segment1 = rawData[0].first + 1; //~100
+      segment2 = rawData[0].second + 1; //~100
+      segment3 = rawData[0].third + 1; //
 
 
-if (skinLayerAirIn==1){digitalWrite(valve4, HIGH);}//Let air into skin layer
-if (skinLayerPumpOn==1){digitalWrite(pump4, HIGH);}
+      if (skinLayerAirIn==1){digitalWrite(valve4, HIGH);}//Let air into skin layer
+      if (skinLayerPumpOn==1){digitalWrite(pump4, HIGH);}
 
-  digitalWrite(valve1, LOW);
-  digitalWrite(pump1, HIGH);  
-  delay(segment1);
-  inflatedTime=inflatedTime+segment1;
-  digitalWrite(pump1, LOW);  
+      digitalWrite(valve1, LOW);
+      digitalWrite(pump1, HIGH);
+      delay(segment1);
+      inflatedTime=inflatedTime+segment1;
+      digitalWrite(pump1, LOW);
 
-  delay(segment3);
-  inflatedTime=inflatedTime+segment3;
- 
-  digitalWrite(valve2, LOW);
-  digitalWrite(pump2, HIGH);  
-  delay(segment2);
-  inflatedTime=inflatedTime+segment2;
-  digitalWrite(pump2, LOW);  
+      delay(segment3);
+      inflatedTime=inflatedTime+segment3;
 
-  delay(segment3);
-  inflatedTime=inflatedTime+segment3;
+      digitalWrite(valve2, LOW);
+      digitalWrite(pump2, HIGH);
+      delay(segment2);
+      inflatedTime=inflatedTime+segment2;
+      digitalWrite(pump2, LOW);
+
+      delay(segment3);
+      inflatedTime=inflatedTime+segment3;
 
 
-digitalWrite(pump4, LOW);
+      digitalWrite(pump4, LOW);
 
-//Second round of data inflations
-  
-  segment1 = argMov[1].inflation_time; //~100 
-  segment2 = argMov[1].chamber; //~100
-  segment3 = argMov[1].iterations; //
+    //Second round of data inflations
 
-  digitalWrite(valve3, LOW);
-  digitalWrite(pump3, HIGH);  
-  delay(segment1);
-  inflatedTime=inflatedTime+segment1;
-  digitalWrite(pump3, LOW);  
+      segment1 = rawData[1].first + 1; //~100
+      segment2 = rawData[1].second + 1; //~100
+      segment3 = rawData[1].third + 1; //
 
-  delay(segment3);
-  inflatedTime=inflatedTime+segment3;
- 
-  digitalWrite(valve1, LOW);
-  digitalWrite(pump1, HIGH);  
-  delay(segment2);
-  inflatedTime=inflatedTime+segment2;
-  digitalWrite(pump1, LOW);  
+      digitalWrite(valve3, LOW);
+      digitalWrite(pump3, HIGH);
+      delay(segment1);
+      inflatedTime=inflatedTime+segment1;
+      digitalWrite(pump3, LOW);
 
-  delay(segment3);
-  inflatedTime=inflatedTime+segment3;
+      delay(segment3);
+      inflatedTime=inflatedTime+segment3;
 
-//Third round of data inflations
-  
-  segment1 = argMov[2].inflation_time; //~100 
-  segment2 = argMov[2].chamber; //~100
-  segment3 = argMov[2].iterations; //
+      digitalWrite(valve1, LOW);
+      digitalWrite(pump1, HIGH);
+      delay(segment2);
+      inflatedTime=inflatedTime+segment2;
+      digitalWrite(pump1, LOW);
 
-  digitalWrite(valve2, LOW);
-  digitalWrite(pump2, HIGH);  
-  delay(segment1);
-  inflatedTime=inflatedTime+segment1;
-  digitalWrite(pump2, LOW);  
+      delay(segment3);
+      inflatedTime=inflatedTime+segment3;
 
-  delay(segment3);
-  inflatedTime=inflatedTime+segment3;
- 
-  digitalWrite(valve3, LOW);
-  digitalWrite(pump3, HIGH);  
-  delay(segment2);
-  inflatedTime=inflatedTime+segment2;
-  digitalWrite(pump3, LOW);  
+      //Third round of data inflations
+      if (req_pack_in_4_5) {
+          platform.SendMoveReqPacket(get_actualTime());
+      }
+      segment1 = rawData[2].first + 1; //~100
+      segment2 = rawData[2].second + 1; //~100
+      segment3 = rawData[2].third + 1; //
 
-  delay(segment3);
-  inflatedTime=inflatedTime+segment3;
+      digitalWrite(valve2, LOW);
+      digitalWrite(pump2, HIGH);
+      delay(segment1);
+      inflatedTime=inflatedTime+segment1;
+      digitalWrite(pump2, LOW);
+
+      delay(segment3);
+      inflatedTime=inflatedTime+segment3;
+
+      digitalWrite(valve3, LOW);
+      digitalWrite(pump3, HIGH);
+      delay(segment2);
+      inflatedTime=inflatedTime+segment2;
+      digitalWrite(pump3, LOW);
+
+      delay(segment3);
+      inflatedTime=inflatedTime+segment3;
 
   }
-digitalWrite(pump4, LOW);
+  digitalWrite(pump4, LOW);
 
-deflateAllSimul(40000, false);
+  deflateAllSimul(40000, false);
 
 }
 
