@@ -9,6 +9,7 @@ MAX_SEQUENCES = 5
 field_available_robots = "available_robots"
 field_delays = "delays"
 field_movement_type = "moves"
+field_full_movement_types = "moves_full"
 field_retry_time = "retry_time"
 field_max_full_rep = "rep"
 field_novelty_population = "novelty"
@@ -448,30 +449,31 @@ class SequenceGenerator:
     def run_continue_sequences(self):
         while self.read_sequences_executing():
             selectedSequence = self.functions[field_choose_sequence]()
+            self.options_copy[field_movement_type] = self.options_copy[field_full_movement_types][selectedSequence]
             self.run_sequence_print_it(selectedSequence)
 
     def run_sequence(self, options, functions, homeThreadingSafe, selectedSequence=None):
         if not (None is self.threading):
             if self.threading.is_alive():
+                print(f'Before starting another sequence close the opened one.')
                 raise ValueError(f'Before starting another sequence close the opened one.')
 
-        if 1 > selectedSequence or MAX_SEQUENCES < selectedSequence and not (selectedSequence is None):
-            raise ValueError(f'The sequence must be between 1 and {MAX_SEQUENCES}. Please define sequence nº '
-                             f'{selectedSequence}')
-        print("run_sequence")
+        if not (selectedSequence is None):
+            if 1 > selectedSequence or MAX_SEQUENCES < selectedSequence:
+                print(f'The sequence must be between 1 and {MAX_SEQUENCES}. Please define sequence nº '
+                      f'{selectedSequence}')
+                raise ValueError(f'The sequence must be between 1 and {MAX_SEQUENCES}. Please define sequence nº '
+                                 f'{selectedSequence}')
         self.options = options
         if field_novelty_population in self.options:
             self.novelty_pop = self.options[field_novelty_population]
-        print("run_sequence2")
 
         self.functions = functions
         self.threadingSafe = homeThreadingSafe
 
         self.options_copy = copy.deepcopy(self.options)
-        print("run_sequence3")
 
         if not (selectedSequence is None):
-            print("not(selectedSequence is None)")
             self.threading = Thread(target=self.run_sequence_print_it, args=(selectedSequence,))
             self.set_executing(selectedSequence)
             self.threading.start()
