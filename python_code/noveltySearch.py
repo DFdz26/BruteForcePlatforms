@@ -1,7 +1,6 @@
 import math
-import time
 import matplotlib.pyplot as plt
-import tools_BF
+import tools.tools_BF as tools_BF
 import numpy
 import random
 
@@ -258,6 +257,10 @@ class NoveltySearchBF:
 
     def transform_genome_into_usable_data(self, aux_data, sequence=None, store_next_genome=False, step=False,
                                           selectMax=False):
+
+        if step:
+            self.step()
+
         if self.nextSelected is None or selectMax:
             selected_genome = self.selectGenome(method="max")
         else:

@@ -91,6 +91,20 @@ def random_generate_data(required_items, data=None, serial_debug=None, raw_data=
             elif MIN_INFLATION_TIME > inflation_time:
                 inflation_time_filtered = MIN_INFLATION_TIME
 
+            if print_data_debug:
+                if serial_debug is None:
+                    print(f"Chosen: {segment1}, \tInflation time (ms): {inflation_time}",
+                          "" if inflation_time_filtered == inflation_time else f"Filtered value: {inflation_time_filtered}")
+                    print(f"Chosen: {segment2}, \tChamber: {chamber}")
+                    print(f"Chosen: {segment3}, \tIterations: {iterations}")
+                    print("------------")
+                else:
+                    serial_debug.write_data(f"Chosen: {segment1}, \tInflation time (ms): {inflation_time}",
+                                            "" if inflation_time_filtered == inflation_time else f"Filtered value: {inflation_time_filtered}")
+                    serial_debug.write_data(f"Chosen: {segment2}, \tChamber: {chamber}")
+                    serial_debug.write_data(f"Chosen: {segment3}, \tIterations: {iterations}")
+                    serial_debug.write_data("------------")
+
         else:
             inflation_time = int(segment1)
             chamber = int(segment2)
@@ -98,19 +112,17 @@ def random_generate_data(required_items, data=None, serial_debug=None, raw_data=
 
             inflation_time_filtered = inflation_time
 
-        if print_data_debug:
-            if serial_debug is None:
-                print(f"Chosen: {segment1}, \tInflation time (ms): {inflation_time}",
-                      "" if inflation_time_filtered == inflation_time else f"Filtered value: {inflation_time_filtered}")
-                print(f"Chosen: {segment2}, \tChamber: {chamber}")
-                print(f"Chosen: {segment3}, \tIterations: {iterations}")
-                print("------------")
-            else:
-                serial_debug.write_data(f"Chosen: {segment1}, \tInflation time (ms): {inflation_time}",
-                                        "" if inflation_time_filtered == inflation_time else f"Filtered value: {inflation_time_filtered}")
-                serial_debug.write_data(f"Chosen: {segment2}, \tChamber: {chamber}")
-                serial_debug.write_data(f"Chosen: {segment3}, \tIterations: {iterations}")
-                serial_debug.write_data("------------")
+            if print_data_debug:
+                if serial_debug is None:
+                    print(f"Chosen: {inflation_time}")
+                    print(f"Chosen: {chamber}")
+                    print(f"Chosen: {iterations}")
+                    print("------------")
+                else:
+                    serial_debug.write_data(f"Chosen: {inflation_time}")
+                    serial_debug.write_data(f"Chosen: {chamber}")
+                    serial_debug.write_data(f"Chosen: {iterations}")
+                    serial_debug.write_data("------------")
 
         aux_ret = {
             "time": inflation_time_filtered,

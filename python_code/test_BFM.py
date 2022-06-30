@@ -1,5 +1,5 @@
 import time
-import tools_BF
+import tools.tools_BF as tools_BF
 import bruteForceMaster
 
 if __name__ == '__main__':

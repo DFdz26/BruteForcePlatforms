@@ -10,7 +10,9 @@ second_movement = True
 
 
 class BruteForceMaster:
-    def __init__(self, available_platforms, baudrate, portName, master_add=0, broadcast_address=0xFF):
+    # def __init__(self, available_platforms, baudrate, portName, master_add=0, broadcast_address=0xFF):
+    def __init__(self, available_platforms, baudrate=None, portName=None, master_add=0,
+                 broadcast_address=0xFF, xbeeID_reg=None, assign_new_address=True, debug_serial=None):
         self.available_final = [{"floor": 1, "platform": 1, "busy": True},
                                 {"floor": 1, "platform": 2, "busy": True},
                                 {"floor": 2, "platform": 1, "busy": True},
@@ -55,6 +57,8 @@ class BruteForceMaster:
         for floor in self.active_devices.keys():
             for platforms in self.active_devices[floor].keys():
                 self.active_devices[floor][platforms]["busy"] = value
+                self.active_devices[floor][platforms]["wait"] = random.randint(1,4) + 3
+                self.active_devices[floor][platforms]["start"] = time.time()
 
                 if mov is not None:
                     self.active_devices[floor][platforms]["movement"] = mov
@@ -92,6 +96,8 @@ class BruteForceMaster:
     def set_all_floor(self, floor, value, mov=None):
         for platforms in self.active_devices[str(floor)].keys():
             self.active_devices[str(floor)][platforms]["busy"] = value
+            self.active_devices[str(floor)][platforms]["wait"] = random.randint(1, 4) + 3
+            self.active_devices[str(floor)][platforms]["start"] = time.time()
 
             if mov is not None:
                 self.active_devices[floor][platforms]["movement"] = mov
@@ -119,6 +125,8 @@ class BruteForceMaster:
             for platforms in self.active_devices[floor].keys():
                 if int(platforms) == int(robots):
                     self.active_devices[floor][platforms]["busy"] = value
+                    self.active_devices[floor][platforms]["wait"] = random.randint(1, 4) + 3
+                    self.active_devices[floor][platforms]["start"] = time.time()
 
                     if mov is not None:
                         self.active_devices[floor][platforms]["movement"] = mov
@@ -126,7 +134,7 @@ class BruteForceMaster:
     def get_active_devices(self):
         return self.active_devices
 
-    def send_move_packet_process(self, mov, platform, floor):
+    def send_move_packet_process(self, mov, platform, floor, pending_flag=False, retry_time=2):
         platform = str(platform)
         floor = str(floor)
         if int(platform) == self.broadcast_address:
@@ -143,6 +151,8 @@ class BruteForceMaster:
             aux_plat = f'I will send to the platform nº {platform} in the floor {floor} the data:'
             self.active_devices[floor][platform]["busy"] = True
             self.active_devices[floor][platform]["movement"] = mov
+            self.active_devices[floor][platform]["wait"] = random.randint(1, 4) + 3
+            self.active_devices[floor][platform]["start"] = time.time()
 
             if second_movement:
                 self.active_devices[floor][platform]["once"] = True
@@ -153,7 +163,101 @@ class BruteForceMaster:
             self.once = True
 
     def run(self):
-        pass
+        # print(self.active_devices)
+
+        a = self.get_busy(0xFF, 0xFF)
+        # print(a)
+
+        for l in a:
+            if l["busy"]:
+                floor = str(l["floor"])
+                platform = str(l["platform"])
+                robot = self.active_devices[floor][platform]
+                if robot["wait"] + robot["start"] < time.time():
+                    self.active_devices[floor][platform]["busy"] = False
+                    print(f"Robot {platform} in floor {floor} has finished.")
+    # def __get_one_aspect_active_devices__(self, key, address_platform, address_floor):
+    #     ret = []
+    #
+    #     if int(address_floor) == 0xFF:
+    #
+    #         for floor in self.active_devices.keys():
+    #             for device in self.active_devices[floor].keys():
+    #                 if int(address_platform) == 0xFF or str(address_platform) == str(device):
+    #                     last_time = self.active_devices[floor][device][key]
+    #                     aux = {"floor": int(floor), "platform": int(device), key: last_time}
+    #
+    #                     ret.append(aux)
+    #
+    #     elif int(address_platform) == 0xFF and str(address_floor) in self.active_devices:
+    #
+    #         for device in self.active_devices[str(address_floor)]:
+    #             last_time = self.active_devices[str(address_floor)][device][key]
+    #             aux = {"floor": int(address_floor), "platform": int(device), key: last_time}
+    #
+    #             ret.append(aux)
+    #
+    #     else:
+    #         last_time = self.active_devices[str(address_floor)][str(address_platform)][key]
+    #         aux = {"floor": int(address_floor), "platform": int(address_platform), key: last_time}
+    #
+    #         ret.append(aux)
+    #
+    #     return ret
+
+    # def get_busy(self, platform, floor):
+    #     platform = str(platform)
+    #     floor = str(floor)
+    #     actual_time = time.time()
+    #
+    #     if self.once or (second_movement and self.active_devices[floor][platform]["once"]):
+    #
+    #         if second_movement:
+    #             if platform != 0xFF:
+    #                 self.active_devices[floor][platform]["once"] = False
+    #             else:
+    #                 for floor1 in self.active_devices.keys():
+    #                     for platforms1 in self.active_devices[floor1].keys():
+    #                         self.active_devices[floor1][platforms1]["once"] = False
+    #
+    #         self.once = False
+    #
+    #         print("Getting_busy")
+    #
+    #         if int(platform) == self.broadcast_address:
+    #             if int(floor) == self.broadcast_address:
+    #                 self.set_time_all_platforms(actual_time)
+    #             else:
+    #                 self.set_time_all_floor(floor, actual_time)
+    #         elif int(floor) == self.broadcast_address:
+    #             self.set_time_specific_robot_all_floor(platform, actual_time)
+    #         else:
+    #             time_base = self.active_devices[floor][platform]["movement"] * 3
+    #             self.active_devices[floor][platform]["stored_time"] = actual_time
+    #             self.active_devices[floor][platform]["wait"] = random.randint(1, 5) + time_base
+    #
+    #     if int(platform) == self.broadcast_address:
+    #         if int(floor) == self.broadcast_address:
+    #             self.check_time_all_platforms(actual_time)
+    #         else:
+    #             self.check_time_all_floor(floor, actual_time)
+    #     elif int(floor) == self.broadcast_address:
+    #         self.check_time_specific_robot_all_floor(platform, actual_time)
+    #     else:
+    #         # print(self.active_devices[floor][platform])
+    #         diff = actual_time - self.active_devices[floor][platform]["stored_time"]
+    #
+    #         if diff > self.active_devices[floor][platform]["wait"] and self.active_devices[floor][platform]["busy"]:
+    #             self.active_devices[floor][platform]["busy"] = False
+    #             print(f"Robot nº {platform} in floor nº {floor} is free")
+    #
+    #     return self.__get_one_aspect_active_devices__("busy", platform, floor)
+
+    def get_busy(self, address_platform, address_floor):
+        return self.__get_one_aspect_active_devices__("busy", str(address_platform), str(address_floor))
+
+    def there_are_pending_messages(self):
+        return False
 
     def __get_one_aspect_active_devices__(self, key, address_platform, address_floor):
         ret = []
@@ -176,7 +280,7 @@ class BruteForceMaster:
 
                 ret.append(aux)
 
-        else:
+        elif self.__check_platform_floor_active__(address_floor, address_platform):
             last_time = self.active_devices[str(address_floor)][str(address_platform)][key]
             aux = {"floor": int(address_floor), "platform": int(address_platform), key: last_time}
 
@@ -184,51 +288,17 @@ class BruteForceMaster:
 
         return ret
 
-    def get_busy(self, platform, floor):
-        platform = str(platform)
-        floor = str(floor)
-        actual_time = time.time()
+    def __check_platform_floor_active__(self, floor, platform):
+        return self.__check_two_levels_dic(self.active_devices, floor, platform)
 
-        if self.once or (second_movement and self.active_devices[floor][platform]["once"]):
+    @staticmethod
+    def __check_two_levels_dic(dic, first_level, second_level):
+        ret = False
 
-            if second_movement:
-                if platform != 0xFF:
-                    self.active_devices[floor][platform]["once"] = False
-                else:
-                    for floor1 in self.active_devices.keys():
-                        for platforms1 in self.active_devices[floor1].keys():
-                            self.active_devices[floor1][platforms1]["once"] = False
+        if first_level is not None:
+            if str(first_level) in dic:
+                if str(second_level) in dic[str(first_level)]:
+                    ret = True
 
-            self.once = False
-
-            print("Getting_busy")
-
-            if int(platform) == self.broadcast_address:
-                if int(floor) == self.broadcast_address:
-                    self.set_time_all_platforms(actual_time)
-                else:
-                    self.set_time_all_floor(floor, actual_time)
-            elif int(floor) == self.broadcast_address:
-                self.set_time_specific_robot_all_floor(platform, actual_time)
-            else:
-                time_base = self.active_devices[floor][platform]["movement"] * 3
-                self.active_devices[floor][platform]["stored_time"] = actual_time
-                self.active_devices[floor][platform]["wait"] = random.randint(1, 5) + time_base
-
-        if int(platform) == self.broadcast_address:
-            if int(floor) == self.broadcast_address:
-                self.check_time_all_platforms(actual_time)
-            else:
-                self.check_time_all_floor(floor, actual_time)
-        elif int(floor) == self.broadcast_address:
-            self.check_time_specific_robot_all_floor(platform, actual_time)
-        else:
-            # print(self.active_devices[floor][platform])
-            diff = actual_time - self.active_devices[floor][platform]["stored_time"]
-
-            if diff > self.active_devices[floor][platform]["wait"] and self.active_devices[floor][platform]["busy"]:
-                self.active_devices[floor][platform]["busy"] = False
-                print(f"Robot nº {platform} in floor nº {floor} is free")
-
-        return self.__get_one_aspect_active_devices__("busy", platform, floor)
+        return ret
 

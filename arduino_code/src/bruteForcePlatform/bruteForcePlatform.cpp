@@ -45,6 +45,7 @@ PlatformsBruteForce::PlatformsBruteForce(uint8_t device_add, uint8_t floor, uint
     debugFunction = nullptr;
     busy_device = false;
     memset(argumentsMovement, 0, sizeof(data_movement_t) * MAX_ITERATIONS_IN_3RD_MOVEMENT);
+    memset(rawData, 0, sizeof(data_movement_t) * MAX_ITERATIONS_IN_3RD_MOVEMENT);
 }
 
 PlatformsBruteForce::PlatformsBruteForce() {
@@ -65,6 +66,7 @@ PlatformsBruteForce::PlatformsBruteForce() {
     debugFunction = nullptr;
     busy_device = false;
     memset(argumentsMovement, 0, sizeof(data_movement_t) * MAX_ITERATIONS_IN_3RD_MOVEMENT);
+    memset(rawData, 0, sizeof(data_movement_t) * MAX_ITERATIONS_IN_3RD_MOVEMENT);
 }
 
 PlatformsBruteForce::PlatformSate_t PlatformsBruteForce::run(unsigned long actualTime) {
@@ -613,6 +615,7 @@ int8_t PlatformsBruteForce::ParseMovePacket(uint8_t *buffer, uint8_t bufferSize)
 
         for (uint8_t i = 0; i < MAX_ITERATIONS_IN_3RD_MOVEMENT; i++) {
             memcpy(&argumentsMovement[i].inflation_time, buffer + checked, sizeof(uint16_t));
+            memcpy(&rawData[i].first, buffer + checked, sizeof(uint16_t));
 
             argumentsMovement[i].inflation_time %= MAX_DEFLATE_TIME;
             if (argumentsMovement[i].inflation_time < MIN_DEFLATE_TIME) {
@@ -621,13 +624,15 @@ int8_t PlatformsBruteForce::ParseMovePacket(uint8_t *buffer, uint8_t bufferSize)
 
             checked += sizeof(uint16_t);
             memcpy(&argumentsMovement[i].chamber, buffer + checked, sizeof(uint8_t));
+            memcpy(&rawData[i].second, buffer + checked, sizeof(uint8_t));
 
             argumentsMovement[i].chamber %= MAX_CHAMBER;
             checked += sizeof(uint8_t);
 
             memcpy(&argumentsMovement[i].iterations, buffer + checked, sizeof(uint8_t));
+            memcpy(&rawData[i].third, buffer + checked, sizeof(uint8_t));
 
-            argumentsMovement[i].chamber %= MAX_ITERATIONS;
+            argumentsMovement[i].iterations %= MAX_ITERATIONS;
             checked += sizeof(uint8_t);
         }
     }
@@ -737,3 +742,14 @@ int8_t PlatformsBruteForce::CopyMovesArgument(data_movement_t* input, uint8_t si
 
     return rc;
 }
+
+int8_t PlatformsBruteForce::CopyRawMessage(raw_data_t* input, uint8_t size) {
+    int8_t rc = (0 == input) ? -1 : 0;
+
+    if (0 == rc) {
+        memcpy(input, rawData, sizeof(raw_data_t)*size);
+    }
+
+    return rc;
+}
+

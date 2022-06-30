@@ -24,7 +24,13 @@ cwd = os.getcwd()
 baud_arduino = 9600
 
 MOVEMENT_TYPES = 6
-IMPLEMENTED_TYPES = [1, 2, 3, 4, 5, 6, 255]
+IMPLEMENTED_TYPES = [1, 2, 3, 4, 5, 6, "long def.", "short def."]
+
+CONVERT_STR_TO_MOV = {
+    "long def.": 254,
+    "short def.": 255
+}
+
 SEQUENCE_TYPES = 5
 
 
