@@ -17,6 +17,7 @@ PlatformsBruteForce platform;
 unsigned long starting_time = millis();
 bool resend_im_free_pack = false;
 unsigned long start_time_delay_pack = 0;
+float random_number_delay = 0;
 int ant_code = 0;
 
 #ifdef SERIAL_DEBUG
@@ -70,7 +71,7 @@ void setup() {
   
 void loop() {
 
-  if (((DELAY_NEXT_FREE_PACKET + start_time_delay_pack) < get_actualTime()) && (resend_im_free_pack)) {
+  if (((DELAY_NEXT_FREE_PACKET + start_time_delay_pack + random_number_delay) < get_actualTime()) && (resend_im_free_pack)) {
     resend_im_free_pack = false;
     platform.SendFreePacket();
   }
@@ -101,6 +102,7 @@ void loop() {
           Serial.println("Finished");
 #endif
           platform.SendFreePacket();
+          random_number_delay = random(0, 50) / 10;
           start_time_delay_pack = get_actualTime();
           resend_im_free_pack = true;
           break;
@@ -122,6 +124,7 @@ void loop() {
           Serial.println("Finished");
 #endif
           platform.SendFreePacket();
+          random_number_delay = random(0, 50) / 10;
           start_time_delay_pack = get_actualTime();
           resend_im_free_pack = true;
           break;
@@ -142,6 +145,7 @@ void loop() {
           Serial.println("Finished");
 #endif
           platform.SendFreePacket();
+          random_number_delay = random(0, 50) / 10;
           start_time_delay_pack = get_actualTime();
           resend_im_free_pack = true;
           break;
@@ -162,6 +166,7 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
               start_time_delay_pack = get_actualTime();
               resend_im_free_pack = true;
               break;
@@ -182,6 +187,7 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
               start_time_delay_pack = get_actualTime();
               resend_im_free_pack = true;
               break;
@@ -202,6 +208,7 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
               start_time_delay_pack = get_actualTime();
               resend_im_free_pack = true;
               break;
@@ -213,6 +220,7 @@ void loop() {
           deflateAllSimul(120000, true);
           delay(30000);
           platform.SendFreePacket();
+          random_number_delay = random(0, 50) / 10;
           start_time_delay_pack = get_actualTime();
           resend_im_free_pack = true;
           break;
@@ -223,6 +231,7 @@ void loop() {
 #endif
           deflateAllSimul(30000, true); //Deflates all chambers for 30s as a security measure before initiating inflation (the robot code should always start with this)
           platform.SendFreePacket();
+          random_number_delay = random(0, 50) / 10;
           start_time_delay_pack = get_actualTime();
           resend_im_free_pack = true;
           break;          
@@ -264,6 +273,7 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
               start_time_delay_pack = get_actualTime();
               resend_im_free_pack = true;
               break;
@@ -285,6 +295,7 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
               start_time_delay_pack = get_actualTime();
               resend_im_free_pack = true;
               break;
@@ -305,6 +316,7 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
               start_time_delay_pack = get_actualTime();
               resend_im_free_pack = true;
               break;
@@ -325,6 +337,7 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
               start_time_delay_pack = get_actualTime();
               resend_im_free_pack = true;
               break;
@@ -345,6 +358,7 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
               start_time_delay_pack = get_actualTime();
               resend_im_free_pack = true;
               break;
@@ -365,6 +379,7 @@ void loop() {
               Serial.println("Finished");
 #endif
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
               start_time_delay_pack = get_actualTime();
               resend_im_free_pack = true;
               break;
@@ -376,6 +391,7 @@ void loop() {
             deflateAllSimul(120000, true);
             delay(30000);
             platform.SendFreePacket();
+            random_number_delay = random(0, 50) / 10;
             start_time_delay_pack = get_actualTime();
             resend_im_free_pack = true;
             break;
@@ -386,6 +402,7 @@ void loop() {
 #endif
               deflateAllSimul(30000, true); //Deflates all chambers for 30s as a security measure before initiating inflation (the robot code should always start with this)
               platform.SendFreePacket();
+              random_number_delay = random(0, 50) / 10;
               start_time_delay_pack = get_actualTime();
               resend_im_free_pack = true;
               break;

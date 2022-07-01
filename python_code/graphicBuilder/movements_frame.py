@@ -267,7 +267,7 @@ class MovementsFrame(tk.Frame):
             values = [k for k in self.available.keys()]
             set_value = str(values[0])
 
-        self.combobox_floors.set(set_value)
+        self.combobox_floors.set('')
         self.combobox_floors['values'] = values
 
     def show(self, options, floor_data):

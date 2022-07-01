@@ -278,6 +278,7 @@ class BruteForceMaster:
             self.debug_serial.write_data(aux_plat)
         else:
             print(aux_plat)
+            print(f"The move is: {type_m}")
 
         movement_data = load_data.random_generate_data(3, raw_data=(type_m in raw_sequences))
         packet = self.build_move_packet_process(type_m, movement_data, platform, floor)

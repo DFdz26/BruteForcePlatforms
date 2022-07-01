@@ -19,7 +19,7 @@ class NoveltySearchBF:
             "allowAutogamy": False,
             "crossoverProbability": 0.8,
             "mutationProbability": 0.1,
-            "elitism": 0.1,
+            "elitism": 0.9,
         }
         self.nextSelected = None
 
@@ -297,7 +297,7 @@ class NoveltySearchBF:
             # trans_data will boolean. True -> go from right lo left.
             # trans_data will boolean. False -> go from left lo right.
 
-            trans_data = (delta % 2) == 0
+            trans_data = (int(delta) % 2) == 0
 
         elif sequence == 5:
 
@@ -306,7 +306,7 @@ class NoveltySearchBF:
             # Proposed: In case that the first digit is 0, one robot will be removed
             # In case of being 1, one robot will be added
 
-            trans_data = delta & 0x1
+            trans_data = int(delta) & 0x1
 
         else:
             # In case of being in the first sequence:
@@ -324,7 +324,8 @@ class NoveltySearchBF:
             # aux_data will contain the number of the available movements.
             # trans_data will be the second available movement
 
-            trans_data = delta % aux_data
+            trans_data = int(delta) % aux_data
+            print(trans_data)
 
         if step:
             self.step()

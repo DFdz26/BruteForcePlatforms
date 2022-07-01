@@ -374,17 +374,6 @@ class SequenceGenerator:
         already_selected = {}
 
         min_delay, max_delay, max_count, available_robots, retry_time = self.get_individual_data(4)
-        self.master["Lock"].acquire()
-        self.master["object"].send_move_packet_process(1, 0xFF, 0xFF)
-        self.master["Lock"].release()
-
-        all_received = False
-        while not all_received and self.read_executing():
-            self.master["Lock"].acquire()
-            all_received = not self.master["object"].there_are_pending_messages()
-            self.master["Lock"].release()
-
-            self.delay_no_blocking(1)
 
         while self.read_executing():
             allFree = True
@@ -412,12 +401,16 @@ class SequenceGenerator:
                             if self.novelty_pop is None:
                                 movement = random.choice(self.options_copy[field_movement_type])
                             else:
+                                print(len(self.options_copy[field_movement_type]))
                                 _, _, aux_mov = self.novelty_pop.transform_genome_into_usable_data(
                                     len(self.options_copy[field_movement_type]),
                                     sequence=4,
                                     store_next_genome=True,
                                     step=step_novelty
                                 )
+                                print(aux_mov)
+                                print(self.options_copy[field_movement_type])
+
                                 movement = self.options_copy[field_movement_type][aux_mov]
 
                             self.master["Lock"].acquire()
@@ -425,10 +418,11 @@ class SequenceGenerator:
                                                                            device["platform"],
                                                                            device["floor"],
                                                                            pending_flag=True,
-                                                                           retry_time=retry_time['fourth'])
+                                                                           retry_time=retry_time['fourth'],
+                                                                           maxRetries=999)
                             self.master["Lock"].release()
 
-                            self.delay_no_blocking(0.2)
+                            self.delay_no_blocking(0.1)
                             allFree = False
 
                     else:
@@ -483,10 +477,12 @@ class SequenceGenerator:
                 _, _, add = self.novelty_pop.transform_genome_into_usable_data(None, sequence=5,
                                                                                store_next_genome=True,
                                                                                step=step_novelty)
-
+            add = True
             if len(active_robots):
-                if add and len(available_robots):
-                    available_robots, active_robots = choose_one_from_a_place_in_b(available_robots, active_robots)
+                if add:
+                    if len(available_robots):
+
+                        available_robots, active_robots = choose_one_from_a_place_in_b(available_robots, active_robots)
                 else:
                     active_robots, available_robots = choose_one_from_a_place_in_b(active_robots, available_robots)
 
@@ -494,7 +490,10 @@ class SequenceGenerator:
                 available_robots, active_robots = choose_one_from_a_place_in_b(available_robots, active_robots)
 
             # send the signal and wait until all of them has finished.
-
+            print(active_robots)
+            print(available_robots)
+            print(f"total robots: {len(active_robots)}")
+            print(f"available: {len(available_robots)}")
             for floor in active_robots:
                 for robot in active_robots[floor]:
                     self.master["Lock"].acquire()
@@ -503,9 +502,12 @@ class SequenceGenerator:
                         robot,
                         floor,
                         pending_flag=True,
-                        retry_time=retry_time['fifth']
+                        retry_time=retry_time['fifth'],
+                        maxRetries=999
                     )
                     self.master["Lock"].release()
+
+                    self.delay_no_blocking(0.1)
 
             all_received = False
             while not all_received and self.read_executing():
@@ -516,6 +518,8 @@ class SequenceGenerator:
                 self.delay_no_blocking(3)
 
             all_busy = True
+            print("self.read_executing()")
+            print(self.read_executing())
             while all_busy and self.read_executing():
                 for floor in active_robots:
                     for robot in active_robots[floor]:
@@ -527,8 +531,10 @@ class SequenceGenerator:
 
                 if all_busy:
                     self.delay_no_blocking(2)
+                else:
+                    i += 1
+                    print(f"iteration nº {i}")
 
-            i += 1
 
         self.set_executing(0)
 
@@ -651,14 +657,14 @@ class SequenceGenerator:
             robot = random.choice(available[floor])
 
         else:
-
-            selected_fl, _, _ = self.novelty_pop.transform_genome_into_usable_data(list(available), sequence=sequence,
+            print(sequence)
+            _, _, selected_fl = self.novelty_pop.transform_genome_into_usable_data(len(list(available)), sequence=sequence,
                                                                                    store_next_genome=False,
-                                                                                   step=True)
+                                                                                   step=False)
             floor = list(available)[selected_fl]
             print(f"first move, floor selected {floor}")
 
-            selected_rob, _, _ = self.novelty_pop.transform_genome_into_usable_data(list(available[floor]),
+            _, _, selected_rob = self.novelty_pop.transform_genome_into_usable_data(len(list(available[floor])),
                                                                                     sequence=sequence,
                                                                                     store_next_genome=False,
                                                                                     step=True)
