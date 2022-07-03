@@ -1,10 +1,10 @@
 import random
 import time
 from threading import Thread, Lock
-# import tools.tools_BF as tools_BF
-# import tools.debugging_functions as bruteForceMaster
-import python_code.tools.tools_BF as tools_BF
-import python_code.debugging_functions as bruteForceMaster
+import tools.tools_BF as tools_BF
+import debugging_functions as bruteForceMaster
+# import python_code.tools.tools_BF as tools_BF
+# import python_code.debugging_functions as bruteForceMaster
 import copy
 
 MAX_SEQUENCES = 5

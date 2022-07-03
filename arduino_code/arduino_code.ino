@@ -826,7 +826,7 @@ bool deflateAllSimul(long deflateTimeAll, bool checkMess) {
 void dataMove3short(){ //
 //DESCRIPTION:  One chamber inflates followed by a second chamber (no jitter with valves)
 
-  Serial.println("dataMove3short()");
+//   Serial.println("dataMove3short()");
 
   rapidInflateOneAtATime(1500, 40, 0);
 
@@ -895,7 +895,7 @@ void movement1(long inflationTime, bool wait_and_communicate) { //Round of hills
 
 void dataMove2(long totInflateTime){
 //DESCRIPTION: Each chamber inflated in turn in circular motion (similar to Video #1)
- Serial.println("dataMove2()");
+//  Serial.println("dataMove2()");
 
   //long totInflateTime = 120000; //27000 max
   long iterInflatedTime = 0;
@@ -938,7 +938,7 @@ void dataMove1(bool skinLayerAirIn, bool skinLayerPumpOn, bool erraticClicks, lo
 //DESCRIPTION:
 //Maja's suggestion
 //Each chamber is in turn inflated with a tiny amount of air based on data (similar to Video #3)
-Serial.println("dataMove1()");
+// Serial.println("dataMove1()");
 
   int segment1; //~100
   int segment2; //~100
