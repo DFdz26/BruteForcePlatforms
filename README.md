@@ -2,7 +2,7 @@
 
 This project contains two main folders plus another one with the required documentation.
 The main idea is to control some soft robotic platforms using a master connected to a laptop. The communication is
-made using xbee modules. In order to establish a correct communication, a protocol was designed (BFP). The sent data is related to a gathered data during the performances that Maja did and using a genetic algoritm algorithm -novelty search- is transformed. The user can control some parameters and see the state of the platforms using a simple GUI.
+made using xbee modules. In order to establish a correct communication, a protocol was designed (BFP). The sent data is related to a gathered data during the performances that Maja did and using a genetic algorithm -novelty search- is transformed. The user can control some parameters and see the state of the platforms using a simple GUI.
 
 One can find the detailed information about every part inside of the folder "documentation".
 * * *
