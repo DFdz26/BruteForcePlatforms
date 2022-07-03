@@ -280,7 +280,7 @@ class BruteForceMaster:
             print(aux_plat)
             print(f"The move is: {type_m}")
 
-        movement_data = load_data.random_generate_data(3, raw_data=(type_m in raw_sequences))
+        movement_data = load_data.random_generate_data(3, raw_data=(type_m in raw_sequences), sequence=type_m)
         packet = self.build_move_packet_process(type_m, movement_data, platform, floor)
 
         if not (packet is None):
