@@ -215,6 +215,7 @@ class SequenceGenerator:
                         i = 0
                     else:
                         self.delay_no_blocking(3)
+                        i = 2
 
             elif i == 2:
 

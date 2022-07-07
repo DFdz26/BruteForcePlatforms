@@ -114,7 +114,10 @@ class HomeFrame(tk.Frame):
         self.label_devices = []
 
     def full_devices_data(self):
-        for i in self.floor_data.keys():
+        keys_aux = list(self.floor_data.keys())
+        keys_aux.reverse()
+
+        for i in keys_aux:
             if len(self.floor_data[i]):
                 label_d = tk.Label(self, text=f"Floor {i}", padx=15, pady=4, font=f"{self.fonts} {int(self.size) + 1}",
                                    bg=self.bg_colour)

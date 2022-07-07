@@ -59,7 +59,7 @@ def get_transformed_data(entries):
         "2": [],
         "3": [],
         "4": [],
-        "5": [0, 0, 0]
+        "5": []
     }
     for i_l in range(5):
         if len(floor_data[str(i_l + 1)]) != int(entries[i_l]):
