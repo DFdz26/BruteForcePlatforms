@@ -72,9 +72,9 @@ class SequenceGenerator:
         self.sequences_executing = val
         self.lock_sequences_executing.release()
 
-    def delay_no_blocking(self, delay):
+    def delay_no_blocking(self, delay, text=None):
         org_time = time.time()
-        print(f"Delay: {delay}")
+        print(f"Delay: {delay} {'' if text is None else text}")
 
         while self.read_executing() and time.time() < (org_time + delay):
             time.sleep(0.1)
@@ -178,7 +178,8 @@ class SequenceGenerator:
                     robot,
                     self.master["object"].broadcast_address,
                     pending_flag=True,
-                    retry_time=retry_time['second']
+                    retry_time=retry_time['second'],
+                    maxRetries=9999
                 )
                 self.master["Lock"].release()
 
@@ -194,7 +195,10 @@ class SequenceGenerator:
                     all_received = not self.master["object"].there_are_pending_messages()
                     self.master["Lock"].release()
 
-                    self.delay_no_blocking(1)
+                    self.delay_no_blocking(1, text="2nd all_received process")
+
+                i = 2
+            elif i == 2:
 
                 if not all_busy:
                     self.master["Lock"].acquire()
@@ -207,17 +211,17 @@ class SequenceGenerator:
                         all_busy = b["busy"]
 
                         if not all_busy:
-                            self.delay_no_blocking(1)
+                            self.delay_no_blocking(1, text="2nd all_busy process")
                             break
 
                 if all_busy and time.time() > (init_time + delay):
                     if len(available_columns):
                         i = 0
                     else:
-                        self.delay_no_blocking(3)
-                        i = 2
+                        self.delay_no_blocking(3, text="2nd wait and step further")
+                        i = 3
 
-            elif i == 2:
+            elif i == 3:
 
                 self.master["Lock"].acquire()
                 busy = self.master["object"].get_busy(0xFF, self.master["object"].broadcast_address)
@@ -228,7 +232,7 @@ class SequenceGenerator:
                     all_busy = b["busy"]
 
                     if all_busy:
-                        self.delay_no_blocking(1)
+                        self.delay_no_blocking(1, text="2nd last checking")
                         break
 
                 if not all_busy:
@@ -678,6 +682,11 @@ class SequenceGenerator:
         else:
             delay = self.novelty_pop.transform_delta_value_delay(max_delay, min_delay, store_next, step=step,
                                                                  selectMax=smax)
+        # Redundant but just as a security measure
+        if delay > max_delay:
+            delay = max_delay
+        elif delay < min_delay:
+            delay = min_delay
 
         return delay
 

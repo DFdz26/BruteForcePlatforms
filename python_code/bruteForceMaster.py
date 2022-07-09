@@ -383,8 +383,9 @@ class BruteForceMaster:
                             self.list_pending_devices[floor][platform]["time"] = time.time()
                             self.list_pending_devices[floor][platform]["retries"] += 1
 
-                            end = True
-                            break
+                            # TODO: This might be a solution for the big delays. A sleep is needed in order to
+                            # leave free the xbee module for receiving the messages
+                            time.sleep(0.2)
                         else:
                             aux = {
                                 "selected": selected,
@@ -394,8 +395,8 @@ class BruteForceMaster:
 
                             erase_from_pending.append(aux)
 
-                if end:
-                    break
+                # if end:
+                #     break
 
             for efp in erase_from_pending:
                 selected = efp["selected"]
