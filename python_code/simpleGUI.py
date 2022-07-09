@@ -12,6 +12,8 @@ import graphicBuilder.serial_picker as serial_picker_frame
 import graphicBuilder.debugColumn as debug_frame
 
 DEBUGGING = True
+SHOW_MOV = True
+
 if DEBUGGING:
     import debugging_functions as bruteForceMaster
 else:
@@ -140,6 +142,8 @@ bFM_master = {
 modify_home_frame = {
     "value": 0,
     "last_value": 0,
+    "mov": 0,
+    "last_mov": 0,
     "printed": False,
     "Lock": Lock()
 }
@@ -233,6 +237,12 @@ try:
                 home_frame.write_ongoing_sequence(modify_home_frame["value"])
             else:
                 home_frame.erase_ongoing_label()
+
+        if SHOW_MOV:
+            if modify_home_frame["mov"] != modify_home_frame["last_mov"]:
+                modify_home_frame["mov"] = modify_home_frame["last_mov"]
+
+                home_frame.write_mov(modify_home_frame["mov"])
         modify_home_frame["Lock"].release()
 
         if bFM.check_change_flag():

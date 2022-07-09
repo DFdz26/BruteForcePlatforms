@@ -22,7 +22,8 @@ field_choose_sequence = "choose_sequence"
 
 second_sequence_random = True
 step_novelty = True
-
+SEQUENCE_BEFORE_RESTING = 5
+time_resting = 60
 
 class SequenceGenerator:
     def __init__(self, master):
@@ -107,6 +108,10 @@ class SequenceGenerator:
 
         movement = random.choice(self.options_copy[field_movement_type])
 
+        self.threadingSafe["Lock"].acquire()
+        self.threadingSafe["mov"] = movement
+        self.threadingSafe["Lock"].release()
+
         while self.read_executing():
             if i == 0:
                 floor, robot = self.__random_novelty_selection_robot_selection__(available_robots, 1)
@@ -120,7 +125,8 @@ class SequenceGenerator:
                     robot,
                     floor,
                     pending_flag=True,
-                    retry_time=retry_time['first']
+                    retry_time=retry_time['first'],
+                    maxRetries=999
                 )
                 self.master["Lock"].release()
 
@@ -165,6 +171,10 @@ class SequenceGenerator:
 
         movement = random.choice(self.options_copy[field_movement_type])
 
+        self.threadingSafe["Lock"].acquire()
+        self.threadingSafe["mov"] = movement
+        self.threadingSafe["Lock"].release()
+
         while self.read_executing():
             if i == 0:
                 all_busy = False
@@ -187,6 +197,7 @@ class SequenceGenerator:
                 delay = self.__select_delay__(min_delay, max_delay, True, step=step_novelty)
 
                 i = 1
+                self.delay_no_blocking(3)
             elif i == 1:
 
                 all_received = False
@@ -198,6 +209,7 @@ class SequenceGenerator:
                     self.delay_no_blocking(1, text="2nd all_received process")
 
                 i = 2
+                self.delay_no_blocking(3)
             elif i == 2:
 
                 if not all_busy:
@@ -253,6 +265,10 @@ class SequenceGenerator:
 
         print("I'm starting from the right" if right else "I'm starting from the left")
         movement = random.choice(self.options_copy[field_movement_type])
+
+        self.threadingSafe["Lock"].acquire()
+        self.threadingSafe["mov"] = movement
+        self.threadingSafe["Lock"].release()
 
         while self.read_executing():
             if i == 0:
@@ -335,6 +351,10 @@ class SequenceGenerator:
 
         movement = random.choice(self.options_copy[field_movement_type])
 
+        self.threadingSafe["Lock"].acquire()
+        self.threadingSafe["mov"] = movement
+        self.threadingSafe["Lock"].release()
+
         while self.read_executing():
             if i == 0:
                 delay = self.__select_delay__(min_delay, max_delay, False)
@@ -354,7 +374,8 @@ class SequenceGenerator:
                     0xFF,
                     floor,
                     pending_flag=True,
-                    retry_time=retry_time['third']
+                    retry_time=retry_time['third'],
+                    maxRetries=999
                 )
                 self.master["Lock"].release()
 
@@ -474,6 +495,10 @@ class SequenceGenerator:
         max_steps = 5
 
         movement = random.choice(self.options_copy[field_movement_type])
+
+        self.threadingSafe["Lock"].acquire()
+        self.threadingSafe["mov"] = movement
+        self.threadingSafe["Lock"].release()
 
         while self.read_executing() and i < max_steps:
             if self.novelty_pop is None:
@@ -600,12 +625,20 @@ class SequenceGenerator:
             self.threadingSafe["Lock"].release()
 
     def run_continue_sequences(self):
+        run_sequences = 0
         while self.read_sequences_executing():
             selectedSequence = self.functions[field_choose_sequence]()
             self.set_executing(selectedSequence)
             self.options_copy[field_movement_type] = self.options_copy[field_full_movement_types][selectedSequence]
             self.run_sequence_print_it(selectedSequence)
             self.options_copy = copy.deepcopy(self.options)
+
+            run_sequences += 1
+
+            if run_sequences > SEQUENCE_BEFORE_RESTING:
+                org_time = time.time()
+                while self.read_sequences_executing() and time.time() < (org_time + time_resting):
+                    time.sleep(0.1)
 
     def run_sequence(self, options, functions, homeThreadingSafe, selectedSequence=None):
         if not (None is self.threading):

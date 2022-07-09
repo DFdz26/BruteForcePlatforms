@@ -24,8 +24,8 @@ class HomeFrame(tk.Frame):
         self.show_debug_fn = show_debug_fn
         self.retry_timeouts = retry_timeouts
 
-        self.last_selected = [0, 0]
-        self.selected_seq = 0
+        self.previous_sequence = 0
+        self.original = ''
 
         if self.retry_timeouts is None:
             self.retry_timeouts = {
@@ -273,6 +273,14 @@ class HomeFrame(tk.Frame):
         self.label_ongoing.config(text=f"On going {aux_text}")
         self.label_ongoing.pack(in_=self.label_ongoing_frame)
 
+    def write_mov(self, mov):
+        if self.original and not mov:
+            self.label_ongoing.config(text=self.original)
+        if mov:
+            self.original = self.label_ongoing.cget("text")
+            aux_text = self.original + f' Mov {mov}'
+            self.label_ongoing.config(text=aux_text)
+
     def erase_ongoing_label(self):
         self.sequence_started = False
         self.label_ongoing.pack_forget()
@@ -287,17 +295,11 @@ class HomeFrame(tk.Frame):
         else:
             sequence, _, _ = self.novelty_population.transform_genome_into_usable_data(self.movements_available)
 
-        if len(self.movements_available) > 2:
-            while sequence in self.last_selected:
-                sequence = self.__chose_random_sequence__(self.movements_available)
-        elif len(self.movements_available) == 2:
-            sel = not self.selected_seq
-            while sequence == self.last_selected[sel]:
+        if len(self.movements_available) > 1:
+            while self.previous_sequence == sequence:
                 sequence = self.__chose_random_sequence__(self.movements_available)
 
-        self.last_selected[self.selected_seq] = sequence
-        self.selected_seq += 1
-        self.selected_seq %= 2
+        self.previous_sequence = sequence
 
         print(f'Selected sequence: {sequence}')
 
