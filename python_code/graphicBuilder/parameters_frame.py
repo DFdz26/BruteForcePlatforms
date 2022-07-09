@@ -1,3 +1,4 @@
+import copy
 import tkinter as tk
 from tkinter import ttk
 from tkinter.messagebox import showinfo
@@ -212,7 +213,7 @@ class ParametersFrame(tk.Frame):
         self.pack_forget()
 
     def show(self, options, floor_data_aux):
-        self.floor_data_aux = floor_data_aux
+        self.floor_data_aux = copy.deepcopy(floor_data_aux)
         self.home_frame.forget()
         self.pack(fill="both", expand=True)
 

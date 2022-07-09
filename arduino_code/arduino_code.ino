@@ -34,8 +34,8 @@ const int valve1 = 8;
 const int valve2 = 11;   
 const int valve3 = 10;
 const int valve4 = 9;
-const long int inflation_time_move_4 = 15000;
-const long int inflation_time_move_5 = 40000;
+const long int inflation_time_move_4 = 25000; //***Changed by Jonas 8-7-22 from 15000
+const long int inflation_time_move_5 = 75000; //***Changed by Jonas 8-7-22 from 40000
 bool req_pack_in_4_5 = false;
 
 //Data points from "Feeding the Algorithm performance" (2020)
@@ -843,7 +843,8 @@ void dataMove3short(){ //
   segment1 = rawData[0].first + 1; // Added 1 to prevent zero value
   segment2 = rawData[0].second + 1;
 
-  inflationTime = segment1 * 44 + 1000;
+  //  inflationTime = segment1 * 66 + 1000; //***Changed by Jonas 8-7-22 from "= segment1 * 44 + 1000"
+  inflationTime = 80000;//***Changed by Jonas 8-7-22
   inflationTime %= 25000;
 
   if (inflationTime < 5000) inflationTime = 5000;
@@ -913,15 +914,15 @@ void dataMove2(long totInflateTime){
         platform.CopyRawMessage(rawData, MAX_ITERATIONS_IN_3RD_MOVEMENT);
     }
     
-    inflationTime = (rawData[i].first + 1) * 100;
+    inflationTime = (rawData[i].first + 1) * 200; //***Changed by Jonas 8-7-22 from 100
     movement1(inflationTime, false);
     iterInflatedTime += inflationTime;
 
-    inflationTime = (rawData[i].second + 1) * 100;
+    inflationTime = (rawData[i].second + 1) * 200;//***Changed by Jonas 8-7-22 from 100
     movement1(inflationTime, false);
     iterInflatedTime += inflationTime;
 
-    inflationTime = (rawData[i].third + 1) * 100;
+    inflationTime = (rawData[i].third + 1) * 200;//***Changed by Jonas 8-7-22 from 100
     movement1(inflationTime, ((max_i - 1) == i) && (req_pack_in_4_5));
     iterInflatedTime += inflationTime;
 
@@ -1041,6 +1042,9 @@ void dataMove1(bool skinLayerAirIn, bool skinLayerPumpOn, bool erraticClicks, lo
       inflatedTime=inflatedTime+segment3;
 
   }
+
+  //digitalWrite(pump4, HIGH); //***Changed by Jonas 8-7-22
+  //delay(24000); //***Changed by Jonas 8-7-22 
   digitalWrite(pump4, LOW);
 
   deflateAllSimul(40000, false);

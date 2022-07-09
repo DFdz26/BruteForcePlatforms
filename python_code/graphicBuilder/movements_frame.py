@@ -102,10 +102,16 @@ class MovementsFrame(tk.Frame):
 
         self.combobox_platforms = ttk.Combobox(root, width=3, state="readonly",
                                                value=[])
+
+        self.button_test_frame = tk.Frame(self, bg=bg_colour)
+        self.button_test_frame.pack(in_=self.top_frame, side=tk.TOP)
         self.combobox_platforms.set('')
         self.combobox_platforms.pack(in_=self.test_movement_frame, side=tk.LEFT)
         self.send_button_test = tk.Button(self, text="Send", command=self.send_test)
-        self.send_button_test.pack(in_=self.top_frame, side=tk.TOP)
+        self.send_button_test.pack(in_=self.button_test_frame, side=tk.LEFT, padx=15)
+
+        self.send_to_all_button_test = tk.Button(self, text="Send to all", command=self.send_test_to_all)
+        self.send_to_all_button_test.pack(in_=self.button_test_frame, side=tk.LEFT)
 
         self.table = []
         self.movements_data_intVar = {}
@@ -180,11 +186,22 @@ class MovementsFrame(tk.Frame):
 
         self.save_b = tools_BF.SaveButton(self, self.save_data, self.bottom_frame)
 
+    def send_test_to_all(self):
+        mov = self.combobox_mov_types.get()
+
+        if mov in tools_BF.CONVERT_STR_TO_MOV:
+            print("Converted, movements_frame.py 193")
+            mov = tools_BF.CONVERT_STR_TO_MOV[mov]
+
+        self.master["Lock"].acquire()
+        self.master["object"].send_move_packet_process(mov, 0xFF, 0xFF, pending_flag=True, retry_time=0.3)
+        self.master["Lock"].release()
+
     def send_test(self):
         mov = self.combobox_mov_types.get()
 
         if mov in tools_BF.CONVERT_STR_TO_MOV:
-            print("Converted, movements_frame.py 187")
+            print("Converted, movements_frame.py 204")
             mov = tools_BF.CONVERT_STR_TO_MOV[mov]
 
         mov = int(mov)

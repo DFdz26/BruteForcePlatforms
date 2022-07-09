@@ -6,6 +6,7 @@ import json
 import tkinter as ttk
 
 FOLDER_STORED_DATA = "stored_data"
+USE_THREAD = False
 
 FILENAME_STORED_AVAILABLE_MOVEMENTS = "mov_info"
 EXTENSION_AVAILABLE_MOVEMENTS = ".json"
@@ -16,9 +17,11 @@ EXTENSION_STORED_PARAMETERS = ".json"
 FOLDER_IMAGES = "img"
 FILENAME_ARROW = "icons8-back-to-30.png"
 FILENAME_SAVE = "icons8-save-30.png"
-
+# EXCEL_FILENAME = "2022-07-08-btf-iterations.xlsx"
+EXCEL_FILENAME = "nbf archive data 2020-07-16 - 2020-09-12(1).xlsx"
 
 cwd = os.getcwd()
+root_project = os.path.abspath(os.path.join(cwd, os.pardir))
 
 # Communication defines
 baud_arduino = 9600
@@ -98,7 +101,7 @@ class ExcelLoader:
         # ]
 
         self.files = [
-            "nbf archive data 2020-07-16 - 2020-09-12(1).xlsx"
+            EXCEL_FILENAME
         ]
         self.selected = -1
 

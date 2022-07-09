@@ -1,3 +1,4 @@
+import threading
 import tkinter as tk
 import random
 
@@ -8,6 +9,8 @@ from sequenceGenerator.sequenceGenerator import field_available_robots, field_de
 from sequenceGenerator.sequenceGenerator import SequenceGenerator, field_choose_sequence
 from sequenceGenerator.sequenceGenerator import field_print_label_sequence, field_erase_label_sequence, field_novelty_population
 from sequenceGenerator.sequenceGenerator import field_retry_time, field_full_movement_types, field_all_delays
+
+import tools.tools_BF as tools_BF
 
 
 class HomeFrame(tk.Frame):
@@ -21,13 +24,17 @@ class HomeFrame(tk.Frame):
         self.show_debug_fn = show_debug_fn
         self.retry_timeouts = retry_timeouts
 
+        self.last_selected = [0, 0]
+        self.selected_seq = 0
+
         if self.retry_timeouts is None:
             self.retry_timeouts = {
-                'first': 2,
-                'second': 2,
-                'third': 2,
-                'fourth': 2,
-                'fifth': 2,
+                'first': 0.3,
+                'second': 0.3,
+                'third': 0.3,
+                'fourth': 0.3,
+                'fifth': 0.3,
+                'stop': 0.3
             }
 
         self.floor_data = {}
@@ -156,13 +163,14 @@ class HomeFrame(tk.Frame):
             self.retry_timeouts = retry_timeouts
 
         if floor_data is not None:
+            # if floor_data != self.floor_data:
+            #     print("changed")
             self.floor_data = floor_data
             self.clear_devices_frame()
             self.full_devices_data()
 
         if sequence_data is not None:
             self.movements_available = sequence_data
-            print(sequence_data)
 
         if max_delay is not None:
             self.max_delay = max_delay
@@ -245,12 +253,24 @@ class HomeFrame(tk.Frame):
     def stop_sequence(self):
         deflation = self.var_send_deflation.get() == 1
 
+        if tools_BF.USE_THREAD:
+            if deflation:
+                processThread = threading.Thread(target=self.__int_stop_sequence__, args=(1,))
+                processThread.start()
+            else:
+                self.__int_stop_sequence__(0)
+        else:
+            self.__int_stop_sequence__(deflation)
+
+        # self.erase_ongoing_label()
+
+    def __int_stop_sequence__(self, deflation):
         self.sequence_generator.stop_sequence(254, deflation)
-        self.erase_ongoing_label()
 
     def write_ongoing_sequence(self, sequence):
         self.sequence_started = True
-        self.label_ongoing.config(text=f"On going sequence nº {sequence}")
+        aux_text = f'sequence nº {sequence}.' if not(sequence in [254, 255]) else 'deflation process.'
+        self.label_ongoing.config(text=f"On going {aux_text}")
         self.label_ongoing.pack(in_=self.label_ongoing_frame)
 
     def erase_ongoing_label(self):
@@ -267,7 +287,19 @@ class HomeFrame(tk.Frame):
         else:
             sequence, _, _ = self.novelty_population.transform_genome_into_usable_data(self.movements_available)
 
-            print(sequence)
+        if len(self.movements_available) > 2:
+            while sequence in self.last_selected:
+                sequence = self.__chose_random_sequence__(self.movements_available)
+        elif len(self.movements_available) == 2:
+            sel = not self.selected_seq
+            while sequence == self.last_selected[sel]:
+                sequence = self.__chose_random_sequence__(self.movements_available)
+
+        self.last_selected[self.selected_seq] = sequence
+        self.selected_seq += 1
+        self.selected_seq %= 2
+
+        print(f'Selected sequence: {sequence}')
 
         return sequence
 

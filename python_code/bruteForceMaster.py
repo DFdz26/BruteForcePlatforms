@@ -1,3 +1,4 @@
+import copy
 import struct
 import time
 
@@ -112,6 +113,7 @@ class BruteForceMaster:
             count_robots = int(available_platforms[i])
             aux_free_add[f"{i + 1}"] = list(range(1, count_robots + 1)) if count_robots > 0 else []
 
+        self.originally_free = aux_free_add
         self.free_add = aux_free_add
         self.inactive_devices = []
 
@@ -124,6 +126,24 @@ class BruteForceMaster:
 
     def there_are_pending_messages(self):
         return 0 != len(self.list_pending_mess)
+
+    # def refresh_available_platforms(self, active_devices):
+    #     aux_active_devices = {
+    #         "1": [],
+    #         "2": [],
+    #         "3": [],
+    #         "4": [],
+    #         "5": [],
+    #     }
+    #
+    #     for d in active_devices:
+    #         count_robots = len(active_devices[d])
+    #         aux_active_devices[d] = list(range(1, count_robots + 1)) if count_robots > 0 else []
+    #
+    #     for floor in self.active_devices:
+    #         for platform
+    #
+    #     self.free_add = active_devices
 
     def check_change_flag(self):
         return self.change_flag

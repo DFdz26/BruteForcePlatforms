@@ -220,7 +220,7 @@ class SequenceGenerator:
             elif i == 2:
 
                 self.master["Lock"].acquire()
-                busy = self.master["object"].get_busy(robot, self.master["object"].broadcast_address)
+                busy = self.master["object"].get_busy(0xFF, self.master["object"].broadcast_address)
                 self.master["Lock"].release()
 
                 all_busy = True
@@ -303,7 +303,7 @@ class SequenceGenerator:
             elif i == 2:
 
                 self.master["Lock"].acquire()
-                busy = self.master["object"].get_busy(robot, self.master["object"].broadcast_address)
+                busy = self.master["object"].get_busy(0xFF, self.master["object"].broadcast_address)
                 self.master["Lock"].release()
 
                 all_busy = True
@@ -536,7 +536,6 @@ class SequenceGenerator:
                     i += 1
                     print(f"iteration nº {i}")
 
-
         self.set_executing(0)
 
     def run_sequence_print_it(self, selectedSequence):
@@ -555,15 +554,46 @@ class SequenceGenerator:
         if self.stopped:
             self.stopped = False
 
+            self.threadingSafe["Lock"].acquire()
+            self.threadingSafe["value"] = 254
+            self.threadingSafe["Lock"].release()
+
             self.master["Lock"].acquire()
             self.master["object"].send_move_packet_process(
                 self.stop_mov,
-                self.master["object"].broadcast_address,
-                self.master["object"].broadcast_address,
+                0xFF,
+                0xFF,
                 pending_flag=True,
-                retry_time=self.options_copy[field_retry_time]['stop']
+                retry_time=self.options_copy[field_retry_time]['stop'],
+                maxRetries=4
             )
             self.master["Lock"].release()
+
+            if tools_BF.USE_THREAD:
+                all_received = False
+                while not all_received:
+                    self.master["Lock"].acquire()
+                    all_received = not self.master["object"].there_are_pending_messages()
+                    self.master["Lock"].release()
+
+                    self.delay_no_blocking(1)
+
+                all_busy = True
+                while all_busy:
+                    self.master["Lock"].acquire()
+                    busy = self.master["object"].get_busy(0xFF, self.master["object"].broadcast_address)
+                    self.master["Lock"].release()
+
+                    for b in busy:
+                        all_busy = b["busy"]
+
+                        if all_busy:
+                            self.delay_no_blocking(2)
+                            break
+
+            self.threadingSafe["Lock"].acquire()
+            self.threadingSafe["value"] = 0
+            self.threadingSafe["Lock"].release()
 
     def run_continue_sequences(self):
         while self.read_sequences_executing():

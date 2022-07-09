@@ -42,11 +42,11 @@ show_home_button = None
 # They are expressed in seconds. It is recommended to have a minimum of time so the platform (slave) is capable of
 # replaying an ACK message and the master is capable to catch this ACK message.
 retry_times = {
-    'first': 2,
-    'second': 2,
-    'third': 2,
-    'fourth': 2,
-    'fifth': 2,
+    'first': 0.3,
+    'second': 0.3,
+    'third': 0.3,
+    'fourth': 0.3,
+    'fifth': 0.3,
     'stop': 0.2,
 }
 
@@ -153,7 +153,8 @@ home_frame = hom_frame.HomeFrame(
     "12",
     bFM_master,
     modify_home_frame,
-    noveltyPop
+    noveltyPop,
+    retry_timeouts=retry_times
 )
 
 mov_fr = mov_frame.MovementsFrame(
