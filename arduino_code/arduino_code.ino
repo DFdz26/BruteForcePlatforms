@@ -7,6 +7,7 @@
 //#define SERIAL_DEBUG
 #define LOADING_DELAY 5000
 #define DELAY_NEXT_FREE_PACKET 10000
+#define TOP_FILTER_MOV_5 200
 
 #ifdef SERIAL_DEBUG
 SoftwareSerial xbee(2,3);
@@ -972,20 +973,21 @@ void dataMove1(bool skinLayerAirIn, bool skinLayerPumpOn, bool erraticClicks, lo
 
       digitalWrite(valve1, LOW);
       digitalWrite(pump1, HIGH);
-      delay(segment1);
+      segment1 = delay_inflation_mov_5(segment1, TOP_FILTER_MOV_5);
+//       delay(segment1);
       inflatedTime=inflatedTime+segment1;
       digitalWrite(pump1, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
       digitalWrite(valve2, LOW);
       digitalWrite(pump2, HIGH);
-      delay(segment2);
+      segment2 = delay_inflation_mov_5(segment2, TOP_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment2;
       digitalWrite(pump2, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
 
@@ -999,20 +1001,20 @@ void dataMove1(bool skinLayerAirIn, bool skinLayerPumpOn, bool erraticClicks, lo
 
       digitalWrite(valve3, LOW);
       digitalWrite(pump3, HIGH);
-      delay(segment1);
+      segment1 = delay_inflation_mov_5(segment1, TOP_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment1;
       digitalWrite(pump3, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
       digitalWrite(valve1, LOW);
       digitalWrite(pump1, HIGH);
-      delay(segment2);
+      segment2 = delay_inflation_mov_5(segment2, TOP_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment2;
       digitalWrite(pump1, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
       //Third round of data inflations
@@ -1025,20 +1027,20 @@ void dataMove1(bool skinLayerAirIn, bool skinLayerPumpOn, bool erraticClicks, lo
 
       digitalWrite(valve2, LOW);
       digitalWrite(pump2, HIGH);
-      delay(segment1);
+      segment1 = delay_inflation_mov_5(segment1, TOP_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment1;
       digitalWrite(pump2, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
       digitalWrite(valve3, LOW);
       digitalWrite(pump3, HIGH);
-      delay(segment2);
+      segment2 = delay_inflation_mov_5(segment2, TOP_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment2;
       digitalWrite(pump3, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
   }
