@@ -24,8 +24,7 @@ class HomeFrame(tk.Frame):
         self.show_debug_fn = show_debug_fn
         self.retry_timeouts = retry_timeouts
 
-        self.last_selected = [0, 0]
-        self.selected_seq = 0
+        self.last_selected = 0
 
         if self.retry_timeouts is None:
             self.retry_timeouts = {
@@ -287,17 +286,9 @@ class HomeFrame(tk.Frame):
         else:
             sequence, _, _ = self.novelty_population.transform_genome_into_usable_data(self.movements_available)
 
-        if len(self.movements_available) > 2:
-            while sequence in self.last_selected:
+        if len(self.movements_available) > 1:
+            while sequence == self.last_selected:
                 sequence = self.__chose_random_sequence__(self.movements_available)
-        elif len(self.movements_available) == 2:
-            sel = not self.selected_seq
-            while sequence == self.last_selected[sel]:
-                sequence = self.__chose_random_sequence__(self.movements_available)
-
-        self.last_selected[self.selected_seq] = sequence
-        self.selected_seq += 1
-        self.selected_seq %= 2
 
         print(f'Selected sequence: {sequence}')
 
