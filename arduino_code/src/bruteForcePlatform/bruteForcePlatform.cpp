@@ -46,6 +46,9 @@ PlatformsBruteForce::PlatformsBruteForce(uint8_t device_add, uint8_t floor, uint
     busy_device = false;
     memset(argumentsMovement, 0, sizeof(data_movement_t) * MAX_ITERATIONS_IN_3RD_MOVEMENT);
     memset(rawData, 0, sizeof(data_movement_t) * MAX_ITERATIONS_IN_3RD_MOVEMENT);
+    first_message_time = 0;
+    delay_busy_free_mess = 0;
+    flag_resend_ping = false;
 }
 
 PlatformsBruteForce::PlatformsBruteForce() {
@@ -67,6 +70,9 @@ PlatformsBruteForce::PlatformsBruteForce() {
     busy_device = false;
     memset(argumentsMovement, 0, sizeof(data_movement_t) * MAX_ITERATIONS_IN_3RD_MOVEMENT);
     memset(rawData, 0, sizeof(data_movement_t) * MAX_ITERATIONS_IN_3RD_MOVEMENT);
+    first_message_time = 0;
+    delay_busy_free_mess = 0;
+    flag_resend_ping = false;
 }
 
 PlatformsBruteForce::PlatformSate_t PlatformsBruteForce::run(unsigned long actualTime) {
@@ -103,6 +109,15 @@ PlatformsBruteForce::PlatformSate_t PlatformsBruteForce::run(unsigned long actua
             break;
     }
 
+    if ((flag_resend_ping) && ((first_message_time + delay_busy_free_mess) < actualTime)) {
+
+        if (PLATFORM_NO_ERROR == SendPing()) {
+            flag_resend_ping = false;
+        } else {
+            first_message_time = actualTime;
+        }
+    }
+
     return rc;
 }
 
@@ -136,6 +151,11 @@ PlatformsBruteForce::PlatformSate_t PlatformsBruteForce::SignInNetwork() {
 
     if (rc == PLATFORM_NO_ERROR) {
         SendPing();
+#ifdef RESEND_FIRST_SIGN_IN_PACKET
+        first_message_time = time;
+        delay_busy_free_mess = 2000;
+        flag_resend_ping = true;
+#endif
     }
 
     return rc;
@@ -357,6 +377,7 @@ int8_t PlatformsBruteForce::BuildPacket(uint8_t* inBuffer, uint8_t* inBufferSize
 int8_t PlatformsBruteForce::ParseSignInPacket(uint8_t *buffer, uint8_t bufferSize) {
     int8_t rc = CheckProtocolTypeSize(buffer, bufferSize, SIGN_IN_NETWORK, REPLAY_SIZE_SIGN_IN_PACKAGE);
     uint8_t checked = (sizeof(uint8_t) *4);
+    uint8_t aux_floor = 0;
 
     if (0 == rc) {
         rc = (check_uint32_from_buffer(buffer + checked, SerialNumberHigh)) ? 0 : -1;
@@ -373,6 +394,16 @@ int8_t PlatformsBruteForce::ParseSignInPacket(uint8_t *buffer, uint8_t bufferSiz
         rc = (memcmp(&server_address, buffer + checked, sizeof(uint8_t)) != 0) ? -1 : 0;
         checked += sizeof(uint8_t);
     }
+
+#ifdef MAX_FLOORS
+    if (0 == rc) {
+        aux_floor = buffer[checked];
+
+        if (aux_floor > MAX_FLOORS) {
+            rc = -1;
+        }
+    }
+#endif
 
     if (0 == rc) {
         device_floor = buffer[checked];

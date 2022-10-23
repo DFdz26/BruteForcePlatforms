@@ -1,33 +1,42 @@
+çimport threading
 import tkinter as tk
 import random
 
 from graphicBuilder.parameters_frame import load_parameters_file, get_transformed_data
-from graphicBuilder.movements_frame import transform_data_to_dict, load_movements_file, check_available_devices
+from graphicBuilder.movements_frame import transform_data_to_dict, load_movements_file, check_available_devices, check_unavailable_devices
 
 from sequenceGenerator.sequenceGenerator import field_available_robots, field_delays, field_max_full_rep, field_movement_type
 from sequenceGenerator.sequenceGenerator import SequenceGenerator, field_choose_sequence
 from sequenceGenerator.sequenceGenerator import field_print_label_sequence, field_erase_label_sequence, field_novelty_population
 from sequenceGenerator.sequenceGenerator import field_retry_time, field_full_movement_types, field_all_delays
 
+import tools.tools_BF as tools_BF
+
 
 class HomeFrame(tk.Frame):
     def __init__(self, root, show_debug_fn, con, bg_colour, fonts, sizes, master, modify_home_threading,
                  novelty_population=None, retry_timeouts=None):
         super().__init__(con)
+        self.max_delay = None
+        self.min_delay = None
         self.novelty_population = novelty_population
         self.threadSafe = modify_home_threading
         self.var_send_deflation = tk.IntVar()
+        self.running_sequence = False
 
         self.show_debug_fn = show_debug_fn
         self.retry_timeouts = retry_timeouts
 
+        self.last_selected = 0
+
         if self.retry_timeouts is None:
             self.retry_timeouts = {
-                'first': 2,
-                'second': 2,
-                'third': 2,
-                'fourth': 2,
-                'fifth': 2,
+                'first': 0.3,
+                'second': 0.3,
+                'third': 0.3,
+                'fourth': 0.3,
+                'fifth': 0.3,
+                'stop': 0.3
             }
 
         self.floor_data = {}
@@ -51,7 +60,6 @@ class HomeFrame(tk.Frame):
         self.floor_data = get_transformed_data(self.floor_data_aux)
         mov, seq = load_movements_file()
         self.movements_available = transform_data_to_dict(mov, seq)
-        print(self.movements_available)
 
         self.master = master
         self.bg_colour = bg_colour
@@ -114,7 +122,11 @@ class HomeFrame(tk.Frame):
         self.label_devices = []
 
     def full_devices_data(self):
-        for i in self.floor_data.keys():
+        keys_aux = list(self.floor_data.keys())
+        keys_aux.reverse()
+        banned_platforms = {}
+
+        for i in keys_aux:
             if len(self.floor_data[i]):
                 label_d = tk.Label(self, text=f"Floor {i}", padx=15, pady=4, font=f"{self.fonts} {int(self.size) + 1}",
                                    bg=self.bg_colour)
@@ -125,6 +137,13 @@ class HomeFrame(tk.Frame):
 
                 for j in range(len(self.floor_data[i])):
                     p = self.floor_data[i][j]
+
+                    if p == 3:
+                        if not(int(i) in banned_platforms):
+                            banned_platforms[int(i)] = []
+
+                        banned_platforms[int(i)].append(int(j))
+
                     fg = self.fg_platforms[p]
                     aux_text = self.text_platforms[p]
                     label_d = tk.Label(self, text=aux_text, padx=15, pady=4, font=f"{self.fonts} {int(self.size) + 1}",
@@ -135,10 +154,15 @@ class HomeFrame(tk.Frame):
                 show_devices_line.pack(in_=self.show_devices_frame_right, fill="x", anchor="n")
                 self.label_devices.append(show_devices_line)
 
+        if self.running_sequence:
+            unavailable = check_unavailable_devices(self.floor_data)
+            print(unavailable)
+            self.sequence_generator.modify_unavailable_robots_online(unavailable)
+
     def load_floor_data_from_bfm(self, bfm_active_devices):
         for floor in bfm_active_devices.keys():
             for platform in bfm_active_devices[floor].keys():
-                self.floor_data[floor][int(platform) - 1] = 2 if bfm_active_devices[floor][platform]['busy'] else 1
+                self.floor_data[floor][int(platform) - 1] = 3 if bfm_active_devices[floor][platform]['error'] else 2 if bfm_active_devices[floor][platform]['busy'] else 1
 
     def refresh_table_from_bfm_data(self, bfm_active_devices):
         self.load_floor_data_from_bfm(bfm_active_devices)
@@ -153,13 +177,14 @@ class HomeFrame(tk.Frame):
             self.retry_timeouts = retry_timeouts
 
         if floor_data is not None:
+            # if floor_data != self.floor_data:
+            #     print("changed")
             self.floor_data = floor_data
             self.clear_devices_frame()
             self.full_devices_data()
 
         if sequence_data is not None:
             self.movements_available = sequence_data
-            print(sequence_data)
 
         if max_delay is not None:
             self.max_delay = max_delay
@@ -193,7 +218,6 @@ class HomeFrame(tk.Frame):
             # print(self.min_delay)
             if self.sequence_started:
                 self.sequence_generator.stop_sequence()
-            # print(self.movements_available)
 
             functions_aux = {
                 field_print_label_sequence: self.write_ongoing_sequence,
@@ -203,9 +227,10 @@ class HomeFrame(tk.Frame):
 
             if not(self.novelty_population is None):
                 data_aux[field_novelty_population] = self.novelty_population
-            # print(data_aux, sequence)
             if len(data_aux[field_available_robots]):
                 self.sequence_generator.run_sequence(data_aux, functions_aux, self.threadSafe, selectedSequence=sequence)
+
+                self.running_sequence = True
         else:
             print("No available movements")
 
@@ -242,17 +267,33 @@ class HomeFrame(tk.Frame):
     def stop_sequence(self):
         deflation = self.var_send_deflation.get() == 1
 
+        if tools_BF.USE_THREAD:
+            if deflation:
+                processThread = threading.Thread(target=self.__int_stop_sequence__, args=(1,))
+                processThread.start()
+            else:
+                self.__int_stop_sequence__(0)
+        else:
+            self.__int_stop_sequence__(deflation)
+
+        # self.erase_ongoing_label()
+
+    def __int_stop_sequence__(self, deflation):
         self.sequence_generator.stop_sequence(254, deflation)
-        self.erase_ongoing_label()
+
+        self.running_sequence = False
 
     def write_ongoing_sequence(self, sequence):
         self.sequence_started = True
-        self.label_ongoing.config(text=f"On going sequence nº {sequence}")
+        aux_text = f'sequence nº {sequence}.' if not(sequence in [254, 255]) else 'deflation process.'
+        self.label_ongoing.config(text=f"On going {aux_text}")
         self.label_ongoing.pack(in_=self.label_ongoing_frame)
 
     def erase_ongoing_label(self):
         self.sequence_started = False
         self.label_ongoing.pack_forget()
+
+        self.running_sequence = False
 
     def get_floor_data(self):
         return self.floor_data
@@ -264,7 +305,13 @@ class HomeFrame(tk.Frame):
         else:
             sequence, _, _ = self.novelty_population.transform_genome_into_usable_data(self.movements_available)
 
-            print(sequence)
+        if len(self.movements_available) > 1:
+            while self.last_selected == sequence:
+                sequence = self.__chose_random_sequence__(self.movements_available)
+
+        self.last_selected = sequence
+
+        print(f'Selected sequence: {sequence}')
 
         return sequence
 

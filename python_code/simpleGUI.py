@@ -42,11 +42,11 @@ show_home_button = None
 # They are expressed in seconds. It is recommended to have a minimum of time so the platform (slave) is capable of
 # replaying an ACK message and the master is capable to catch this ACK message.
 retry_times = {
-    'first': 2,
-    'second': 2,
-    'third': 2,
-    'fourth': 2,
-    'fifth': 2,
+    'first': 0.3,
+    'second': 0.3,
+    'third': 0.3,
+    'fourth': 0.3,
+    'fifth': 0.3,
     'stop': 0.2,
 }
 
@@ -125,7 +125,7 @@ noveltyPop = noveltySearch.NoveltySearchBF()
 bFM = bfm.BruteForceMaster(f_d)
 
 master = {
-    "object": bruteForceMaster.BruteForceMaster(None, tools_BF.baud_arduino, communication_port),
+    "object": bruteForceMaster.BruteForceMaster(None, tools_BF.baud_arduino, communication_port, assign_new_address=True),
     "Lock": Lock()
 }
 
@@ -153,7 +153,8 @@ home_frame = hom_frame.HomeFrame(
     "12",
     bFM_master,
     modify_home_frame,
-    noveltyPop
+    noveltyPop,
+    retry_timeouts=retry_times
 )
 
 mov_fr = mov_frame.MovementsFrame(
@@ -203,7 +204,6 @@ top_register.pack(side=ttk.TOP, fill="both", expand=True)
 bottom_register.pack(side=ttk.BOTTOM, fill="x")
 
 loop_active = True
-# home_frame.show(None)
 serial_fr.show()
 
 if USE_GIF:
@@ -214,15 +214,12 @@ if USE_GIF:
     home_frame.after(0, update, 0, molecule_label, home_frame, frames_molecule, frameCnt_molecule, fs_gif)
 
 try:
-    # TODO: two threads
-    # TODO: for what did i want two threads?
+
     while loop_active:
         bFM_master["Lock"].acquire()
-        # {'1': {'1': {'last_time': 1652301306.1660364, 'busy': False, 'movement': 0, 'pending': False}}}
 
         if bFM_master["object"].serialIsSet():
             bFM_master["object"].run()
-        # bFM.run()
 
         modify_home_frame["Lock"].acquire()
         if modify_home_frame["value"] != modify_home_frame["last_value"]:
@@ -241,6 +238,7 @@ try:
 
         bFM_master["Lock"].release()
         root.update()
+
 except KeyboardInterrupt:
     home_frame.stop_sequence()
     bFM.terminate()

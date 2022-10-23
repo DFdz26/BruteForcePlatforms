@@ -23,7 +23,7 @@ class NoveltySearchBF:
         }
         self.nextSelected = None
 
-        if not(config is None):
+        if not (config is None):
             for k in config.key:
                 used_config[k] = config[k]
 
@@ -89,19 +89,14 @@ class NoveltySearchBF:
                 items[j].append(self.store_data[i][j])
         print("_-------")
         print(items)
-        # plotting the points
+
         for i in range(len(items)):
             plt.plot(x, items[i])
 
-            # naming the x axis
             plt.xlabel('x - axis')
-            # naming the y axis
             plt.ylabel('y - axis')
 
-            # giving a title to my graph
             plt.title(f'{i} item')
-
-            # function to show the plot
             plt.show()
 
     def step(self):
@@ -114,10 +109,10 @@ class NoveltySearchBF:
             print(self.population)
             print("-------")
             print(sorted_values)
-            adj_values = self.__adjusted_dic__(sorted_values)
+            # adj_values = self.__adjusted_dic__(sorted_values)
             raise ValueError(E)
         children, self.sumGen = self.__get_novelty__(children, self.nPopulation * 2, len(self.config["selectedFields"]),
-                                                 self.maxValues, self.sumGen, self.countGenerated)
+                                                     self.maxValues, self.sumGen, self.countGenerated)
 
         # self.sumGen = list(map(lambda x, y: x + y, self.sumGen, sum_aux))
         self.countGenerated += self.nPopulation * 2
@@ -225,7 +220,7 @@ class NoveltySearchBF:
         return int(value_bin, 2)
 
     def __generate_next_population__(self, children, sorted_pop):
-        previous_pop = self.population
+        # previous_pop = self.population
         new_pop = []
         size_previous_pop = self.nPopulation
         elitism = self.config["elitism"]
@@ -236,7 +231,7 @@ class NoveltySearchBF:
                 max_novel = max(sorted_pop)
                 sel = sorted_pop[max_novel].pop(0)
 
-                if not(len(sorted_pop[max_novel])):
+                if not (len(sorted_pop[max_novel])):
                     sorted_pop.pop(max_novel)
 
                 new_pop.append(self.population[sel])
@@ -249,7 +244,7 @@ class NoveltySearchBF:
             while len(new_pop) != size_previous_pop:
                 randChoice = random.choice(adj_children)
 
-                if not(randChoice in chosen):
+                if not (randChoice in chosen):
                     chosen.append(randChoice)
                     new_pop.append(children[randChoice])
 
@@ -441,21 +436,14 @@ class NoveltySearchBF:
 
         return res
 
-    # @staticmethod
     def __get_novelty__(self, pop, size_gens, size_genotype, maxValues, previous_sum=None, previous_len=None):
-        global o
         sum_genotype = [0] * size_genotype
         mean_genotype = [0] * size_genotype
         div = size_gens
         counts = [0, 0, 0, 0, 0]
 
-        if o == 20:
-            print("hey")
-        else:
-            o += 1
-
         for p in pop:
-            sum_genotype = list(map(lambda x, y, z: x + (y/z), sum_genotype, p["genotype"], maxValues))
+            sum_genotype = list(map(lambda x, y, z: x + (y / z), sum_genotype, p["genotype"], maxValues))
             counts[p["genotype"][3]] += 1
 
         if not (previous_sum is None) and True:
@@ -482,7 +470,7 @@ class NoveltySearchBF:
         return pop, sum_genotype_aux
 
     def selectGenome(self, method="random", chosen=None):
-        if not(method in self.implementation):
+        if not (method in self.implementation):
             raise ValueError(f"The chosen method is not implemented, select one of the following methods: "
                              f"{self.implementation.keys()}")
 
@@ -555,32 +543,6 @@ class NoveltySearchBF:
         for one in self.population:
             mean = list(map(lambda x, y: x + y, one["genotype"], mean))
 
-        mean = list(map(lambda x, y: x/y, mean, length_population))
+        mean = list(map(lambda x, y: x / y, mean, length_population))
 
         return mean
-    #
-    #
-    # @staticmethod
-    # def __mutation__():
-    #     pass
-
-o = 0
-if __name__ == "__main__":
-    test_noveltySearch = NoveltySearchBF()
-    i = 0
-    # sorted_values = {0.096: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 55, 57, 58, 59, 60, 61, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74], 0.097: [56], 0.156: [7, 29, 62], 0.191: [47], 0.564: [5, 6], 0.614: [4], 0.623: [3], 0.649: [2], 0.707: [1], 0.79: [0]}
-    # adj_values = test_noveltySearch.__adjusted_dic__(sorted_values)
-    # children = test_noveltySearch.__get_children__(adj_values)
-    while i < 1000:
-        print(test_noveltySearch.population)
-        print(len(test_noveltySearch.population))
-        test_noveltySearch.step()
-        # time.sleep(1)
-        i += 1
-
-    test_noveltySearch.printStoreData(3)
-    # print(test_noveltySearch.population)
-    # n = test_noveltySearch.__float_bin__(10.293)
-    #
-    # print(n)
-    # print(type(n))

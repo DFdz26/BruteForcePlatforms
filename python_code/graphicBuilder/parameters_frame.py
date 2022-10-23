@@ -1,3 +1,4 @@
+import copy
 import tkinter as tk
 from tkinter import ttk
 from tkinter.messagebox import showinfo
@@ -59,7 +60,7 @@ def get_transformed_data(entries):
         "2": [],
         "3": [],
         "4": [],
-        "5": [0, 0, 0]
+        "5": []
     }
     for i_l in range(5):
         if len(floor_data[str(i_l + 1)]) != int(entries[i_l]):
@@ -212,7 +213,7 @@ class ParametersFrame(tk.Frame):
         self.pack_forget()
 
     def show(self, options, floor_data_aux):
-        self.floor_data_aux = floor_data_aux
+        self.floor_data_aux = copy.deepcopy(floor_data_aux)
         self.home_frame.forget()
         self.pack(fill="both", expand=True)
 

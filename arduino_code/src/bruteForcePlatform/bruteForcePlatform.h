@@ -11,12 +11,14 @@
 
 #define EXPOSE_PRIVATE_DEBUG
 #define RECEIVE_SIGN_IN_ONCE_CONNECTED
+#define RESEND_FIRST_SIGN_IN_PACKET
 
 #define MAX_ITERATIONS_IN_3RD_MOVEMENT 3
 #define MIN_DEFLATE_TIME 5000
 #define MAX_DEFLATE_TIME 25000
 #define MAX_CHAMBER 3
 #define MAX_ITERATIONS 3
+#define MAX_FLOORS 5
 
 class PlatformsBruteForce {
 public:
@@ -142,8 +144,10 @@ private:
 
     unsigned long time;
     unsigned long stored_time;
+    unsigned long first_message_time;
+    unsigned long delay_busy_free_mess;
     proto_debug debugFunction;
-
+    bool flag_resend_ping;
 
 };
 

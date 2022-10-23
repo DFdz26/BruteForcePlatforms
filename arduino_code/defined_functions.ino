@@ -213,3 +213,11 @@ unsigned long get_actualTime() {
   
   return (millis() - starting_time);
 }
+
+int delay_inflation_mov_5(int del, int top, int low) {
+    if (del > top) del = top;
+    else if (del < low) del = low;
+    delay(del);
+
+    return del;
+}

@@ -33,6 +33,7 @@ class BruteForceMaster:
         }
         self.defaultMaxRetries = 3
         self.debug_serial = debug_serial
+        self.banned = {}
 
         """ The dictionary looks like:
         {
@@ -112,6 +113,7 @@ class BruteForceMaster:
             count_robots = int(available_platforms[i])
             aux_free_add[f"{i + 1}"] = list(range(1, count_robots + 1)) if count_robots > 0 else []
 
+        self.originally_free = aux_free_add
         self.free_add = aux_free_add
         self.inactive_devices = []
 
@@ -124,6 +126,24 @@ class BruteForceMaster:
 
     def there_are_pending_messages(self):
         return 0 != len(self.list_pending_mess)
+
+    # def refresh_available_platforms(self, active_devices):
+    #     aux_active_devices = {
+    #         "1": [],
+    #         "2": [],
+    #         "3": [],
+    #         "4": [],
+    #         "5": [],
+    #     
+    #
+    #     for d in active_devices:
+    #         count_robots = len(active_devices[d])
+    #         aux_active_devices[d] = list(range(1, count_robots + 1)) if count_robots > 0 else []
+    #
+    #     for floor in self.active_devices:
+    #         for platform
+    #
+    #     self.free_add = active_devices
 
     def check_change_flag(self):
         return self.change_flag
@@ -205,6 +225,15 @@ class BruteForceMaster:
             self.active_devices[str(floor)][str(platform)]["busy"] = busy
             self.change_flag = True
 
+            if floor in self.banned:
+                if platform in self.banned[floor]:
+                    self.banned[floor].remove(platform)
+
+                if not(len(self.banned[floor])):
+                    self.banned.pop(floor)
+
+                self.active_devices[str(floor)][str(platform)]["error"] = 0
+
             if self.__check_message_in_pending__(floor, platform):
                 if self.list_pending_mess[str(floor)][str(platform)]["mes"] == self.ASSIGNED_BUSY_NUMBER:
                     _ = self.list_pending_mess[str(floor)].pop(str(platform))
@@ -263,7 +292,11 @@ class BruteForceMaster:
                     "maxRetries": self.defaultMaxRetries
                 }
 
-    def send_move_packet_process(self, type_m, platform, floor, pending_flag=False, maxRetries=3, retry_time=None):
+    def send_move_packet_process(self, type_m, platform, floor, pending_flag=False, maxRetries=3, retry_time=None,
+                                 banned_pla=None):
+        if banned_pla is None:
+            banned_pla = {}
+
         if platform == self.broadcast_address:
             if floor == self.broadcast_address:
                 aux_plat = "I will send to all the robots the following info:"
@@ -290,17 +323,49 @@ class BruteForceMaster:
                 for fl in self.active_devices.keys():
                     for pl in self.active_devices[fl].keys():
                         if pl == str(platform) or int(platform) == self.broadcast_address:
-                            self.__add_movement_information__(fl, pl, type_m, movement_data, pending_flag,
-                                                              maxRetries, retry_time)
+                            print(f"self.banned, {self.banned}")
+                            if self.save_info(self.banned, int(fl), pl):
+                                self.__add_movement_information__(fl, pl, type_m, movement_data, pending_flag,
+                                                                  maxRetries, retry_time)
             elif str(floor) in self.active_devices and int(platform) == self.broadcast_address:
                 for pl in self.active_devices[str(floor)].keys():
                     if pl == str(platform) or int(platform) == self.broadcast_address:
-                        self.__add_movement_information__(str(floor), pl, type_m, movement_data, pending_flag,
-                                                          maxRetries, retry_time)
+                        print(f"self.banned, {self.banned}")
+                        if self.save_info(self.banned, int(floor), pl):
+                            self.__add_movement_information__(str(floor), pl, type_m, movement_data, pending_flag,
+                                                              maxRetries, retry_time)
             elif self.__check_platform_floor_active__(floor, platform):
-                self.__add_movement_information__(str(floor), platform, type_m, movement_data, pending_flag,
-                                                  maxRetries, retry_time)
+                print(f"self.banned, {self.banned}")
+                if self.save_info(self.banned, int(floor), platform):
+                    self.__add_movement_information__(str(floor), platform, type_m, movement_data, pending_flag,
+                                                      maxRetries, retry_time)
 
+    def save_info(self, banned_pla, floor, platform):
+        if banned_pla is {}:
+            return True
+        else:
+            rc = True
+            print(floor)
+            print(platform)
+            if int(floor) in banned_pla:
+                print("floor")
+                if int(platform) in banned_pla[floor]:
+                    print("platform")
+                    rc = False
+
+            return rc
+    
+    def include_banned_platforms(self, floor, platform):
+        if not(floor in self.banned):
+            self.banned[floor] = []
+
+        if not(platform in self.banned[floor]):
+
+            self.banned[floor].append(platform)
+            self.active_devices[str(floor)][str(platform)]["error"] = 1
+
+            self.change_flag = True
+        
     def __add_movement_information__(self, floor, platform, type_movement, movement_data,
                                      pending_flag=False, max_retries=3, retryTime=None):
         self.active_devices[str(floor)][str(platform)]["movement"] = type_movement
@@ -363,8 +428,8 @@ class BruteForceMaster:
                             self.list_pending_devices[floor][platform]["time"] = time.time()
                             self.list_pending_devices[floor][platform]["retries"] += 1
 
-                            end = True
-                            break
+                            # leave free the xbee module for receiving the messages
+                            time.sleep(0.8)
                         else:
                             aux = {
                                 "selected": selected,
@@ -373,9 +438,6 @@ class BruteForceMaster:
                             }
 
                             erase_from_pending.append(aux)
-
-                if end:
-                    break
 
             for efp in erase_from_pending:
                 selected = efp["selected"]
@@ -439,6 +501,16 @@ class BruteForceMaster:
             elif self.__check_platform_floor_active__(floor, platform):
                 self.active_devices[str(floor)][str(platform)]["last_time"] = time.time()
 
+            if floor in self.banned:
+                if platform in self.banned[floor]:
+                    self.banned[floor].remove(platform)
+
+                if not(len(self.banned[floor])):
+                    self.banned.pop(floor)
+
+                self.active_devices[str(floor)][str(platform)]["error"] = 0
+                self.change_flag = True
+
     def activate_from_pending_process(self, floor, platform):
         active = self.list_pending_devices[str(floor)][str(platform)]["active"]
         serialNumberHigh = self.list_pending_devices[str(floor)][str(platform)]["high"]
@@ -453,7 +525,8 @@ class BruteForceMaster:
                 "busy": False,
                 "movement": 0,
                 "pending": False,
-                "unreachable": False
+                "unreachable": False,
+                "error": 0
             }
 
             self.change_flag = True
@@ -463,6 +536,8 @@ class BruteForceMaster:
 
         self.xbeeID[str(serialNumberHigh)][str(serialNumberLow)]["floor"] = int(floor)
         self.xbeeID[str(serialNumberHigh)][str(serialNumberLow)]["n_platform"] = int(platform)
+
+        print(f"self.xbeeID: {self.xbeeID}")
 
         self.list_pending_devices[str(floor)].pop(str(platform))
 
@@ -757,6 +832,7 @@ class BruteForceMaster:
         return self.__check_two_levels_dic(self.active_devices, floor, platform)
 
     def __check_xbee_id_in_pool__(self, high_number, low_number):
+        print(f"__check_xbee_id_in_pool__: {high_number}, {low_number}")
         return self.__check_two_levels_dic(self.xbeeID, high_number, low_number)
 
     def __check_device_in_pending__(self, floor, platform):

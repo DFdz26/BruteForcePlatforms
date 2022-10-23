@@ -7,6 +7,9 @@ import debugging_functions as bruteForceMaster
 # import python_code.debugging_functions as bruteForceMaster
 import copy
 
+MINUTES_AFTER_CHECKING_PLATFORMS = 3.5
+RETRIES_BEFORE_CONTINUING = 2
+maxRetriesSecondSequence = 10
 MAX_SEQUENCES = 5
 field_available_robots = "available_robots"
 field_delays = "delays"
@@ -20,7 +23,6 @@ field_print_label_sequence = "print_sequence"
 field_erase_label_sequence = "erase_sequence"
 field_choose_sequence = "choose_sequence"
 
-second_sequence_random = True
 step_novelty = True
 
 
@@ -39,6 +41,8 @@ class SequenceGenerator:
         self.threadingSafe = None
         self.stopped = False
         self.stop_mov = 254
+        self.banned_platform = {}
+        self.threadingBannedPlatforms = Lock()
 
         self.sequences_functions = [
             self.first_sequence,
@@ -47,6 +51,23 @@ class SequenceGenerator:
             self.forth_sequence,
             self.fifth_sequence
         ]
+
+    def check_robot_in_unavailable(self, floor, robot):
+        rc = False
+
+        self.threadingBannedPlatforms.acquire()
+        if int(floor) in self.banned_platform:
+            if int(robot) in self.banned_platform[floor]:
+                rc = True
+
+        self.threadingBannedPlatforms.release()
+        
+        return rc
+
+    def modify_unavailable_robots_online(self, banned):
+        self.threadingBannedPlatforms.acquire()
+        self.banned_platform = banned
+        self.threadingBannedPlatforms.release()
 
     def read_executing(self):
         self.lock_executing.acquire()
@@ -72,17 +93,21 @@ class SequenceGenerator:
         self.sequences_executing = val
         self.lock_sequences_executing.release()
 
-    def delay_no_blocking(self, delay):
+    def delay_no_blocking(self, delay, text=None):
         org_time = time.time()
-        print(f"Delay: {delay}")
+        print(f"Delay: {delay} {'' if text is None else text}")
 
         while self.read_executing() and time.time() < (org_time + delay):
             time.sleep(0.1)
 
     def wait_until_all_finished(self):
         all_free = False
+        beginning = time.time()
+        count_times_check = 0
 
         while not all_free and self.read_executing():
+            elapsed = time.time() - beginning
+
             self.master["Lock"].acquire()
             busy = self.master["object"].get_busy(
                 self.master["object"].broadcast_address,
@@ -91,11 +116,83 @@ class SequenceGenerator:
             self.master["Lock"].release()
 
             for b in busy:
-                all_free = not b["busy"]
+                floor = b["floor"]
+                rob = b["platform"]
+                
+                if not self.check_robot_in_unavailable(floor, rob):
+                    all_free = not b["busy"]
 
-                if not all_free:
-                    self.delay_no_blocking(1)
-                    break
+                    if not all_free:
+                        self.delay_no_blocking(1)
+                        break
+
+            print(f"elapsed time {elapsed}, waiting until {MINUTES_AFTER_CHECKING_PLATFORMS * 60}, counter: "
+                  f"{count_times_check}")
+
+            if elapsed > (MINUTES_AFTER_CHECKING_PLATFORMS * 60):
+                beginning = time.time()
+                count_times_check += 1
+
+                if self.check_available_platforms(count_times_check):
+                    all_free = True
+
+    def check_available_platforms(self, retries):
+        self.master["Lock"].acquire()
+        busy = self.master["object"].get_busy(
+            self.master["object"].broadcast_address,
+            self.master["object"].broadcast_address
+        )
+        self.master["Lock"].release()
+        robots = {}
+        last_retry = retries >= RETRIES_BEFORE_CONTINUING
+        continue_program = False
+
+        for b in busy:
+            free = not b["busy"]
+
+            if not free:
+                if not(b["floor"] in robots):
+                    robots[b["floor"]] = []
+                robots[b["floor"]].append(b["platform"])
+
+        print(f"Stuck robots: {robots}")
+
+        if robots is {}:
+            continue_program = True
+
+        for floor in robots:
+            for robot in robots[floor]:
+                self.master["Lock"].acquire()
+                self.master["object"].send_move_packet_process(
+                    0,
+                    robot,
+                    floor,
+                )
+                self.master["Lock"].release()
+
+                self.delay_no_blocking(1 if not last_retry else 2)
+
+        if last_retry:
+            self.master["Lock"].acquire()
+            busy = self.master["object"].get_busy(
+                self.master["object"].broadcast_address,
+                self.master["object"].broadcast_address
+            )
+            self.master["Lock"].release()
+
+            for b in busy:
+                free = not b["busy"]
+
+                if not free:
+                    continue_program = True
+                    floor = b["floor"]
+                    rob = b["platform"]
+
+                    self.master["Lock"].acquire()
+                    self.master["object"].include_banned_platforms(floor, rob)
+                    self.master["Lock"].release()
+
+        return continue_program
 
     def first_sequence(self):
         print("First")
@@ -111,6 +208,10 @@ class SequenceGenerator:
             if i == 0:
                 floor, robot = self.__random_novelty_selection_robot_selection__(available_robots, 1)
                 available_robots[floor].remove(robot)
+
+                while self.check_robot_in_unavailable(floor, robot):
+                    floor, robot = self.__random_novelty_selection_robot_selection__(available_robots, 1)
+                    available_robots[floor].remove(robot)
 
                 delay = self.__select_delay__(min_delay, max_delay, True)
 
@@ -149,11 +250,8 @@ class SequenceGenerator:
             if aux > max_len:
                 max_len = aux
 
-        if second_sequence_random:
-            available_columns = [(i + 1) for i in range(max_len)]
-            self.random_second_sequence(min_delay, max_delay, retry_time, available_columns)
-        else:
-            self.sequential_second_sequence(min_delay, max_delay, max_len, retry_time)
+        available_columns = [(i + 1) for i in range(max_len)]
+        self.random_second_sequence(min_delay, max_delay, retry_time, available_columns)
 
     def random_second_sequence(self, min_delay, max_delay, retry_time, available_columns):
         i = 0
@@ -162,8 +260,11 @@ class SequenceGenerator:
         delay = 0
         init_time = 0
         robot = 0
+        count_times_check = 0
 
         movement = random.choice(self.options_copy[field_movement_type])
+        beginning = 0
+        beginning_all_busy = 0
 
         while self.read_executing():
             if i == 0:
@@ -178,7 +279,8 @@ class SequenceGenerator:
                     robot,
                     self.master["object"].broadcast_address,
                     pending_flag=True,
-                    retry_time=retry_time['second']
+                    retry_time=retry_time['second'],
+                    maxRetries=maxRetriesSecondSequence
                 )
                 self.master["Lock"].release()
 
@@ -194,9 +296,21 @@ class SequenceGenerator:
                     all_received = not self.master["object"].there_are_pending_messages()
                     self.master["Lock"].release()
 
-                    self.delay_no_blocking(1)
+                    self.delay_no_blocking(1, text="2nd all_received process")
+
+                i = 2
+                beginning_all_busy = 0
+            elif i == 2:
 
                 if not all_busy:
+                    if beginning_all_busy == 0:
+                        beginning_all_busy = time.time()
+
+                    elapsed = time.time() - beginning_all_busy
+
+                    if elapsed > (3 * 60):
+                        self.set_executing(0)                        
+                        
                     self.master["Lock"].acquire()
                     busy = self.master["object"].get_busy(robot, self.master["object"].broadcast_address)
                     self.master["Lock"].release()
@@ -207,111 +321,48 @@ class SequenceGenerator:
                         all_busy = b["busy"]
 
                         if not all_busy:
-                            self.delay_no_blocking(1)
+                            self.delay_no_blocking(1, text="2nd all_busy process")
                             break
 
                 if all_busy and time.time() > (init_time + delay):
                     if len(available_columns):
                         i = 0
                     else:
-                        self.delay_no_blocking(3)
+                        self.delay_no_blocking(3, text="2nd wait and step further")
+                        i = 3
 
-            elif i == 2:
+            elif i == 3:
+
+                if beginning == 0:
+                    beginning = time.time()
+
+                elapsed = time.time() - beginning
+
+                if elapsed > (MINUTES_AFTER_CHECKING_PLATFORMS * 60):
+                    beginning = time.time()
+                    count_times_check += 1
+                    if self.check_available_platforms(count_times_check):
+                        self.set_executing(0)
+                        break
 
                 self.master["Lock"].acquire()
-                busy = self.master["object"].get_busy(robot, self.master["object"].broadcast_address)
+                busy = self.master["object"].get_busy(0xFF, self.master["object"].broadcast_address)
                 self.master["Lock"].release()
 
                 all_busy = True
                 for b in busy:
-                    all_busy = b["busy"]
 
-                    if all_busy:
-                        self.delay_no_blocking(1)
-                        break
-
-                if not all_busy:
-                    self.set_executing(0)
-
-    def sequential_second_sequence(self, min_delay, max_delay, max_len, retry_time):
-        if self.novelty_pop is None:
-            right = True
-        else:
-            _, _, right = self.novelty_pop.transform_genome_into_usable_data(None, sequence=2,
-                                                                             store_next_genome=True, step=True)
-
-        robot = 1 if right else max_len
-        all_busy = False
-        delay = 0
-        init_time = 0
-        i = 0
-
-        print("I'm starting from the right" if right else "I'm starting from the left")
-        movement = random.choice(self.options_copy[field_movement_type])
-
-        while self.read_executing():
-            if i == 0:
-                all_busy = False
-
-                self.master["Lock"].acquire()
-                self.master["object"].send_move_packet_process(
-                    movement,
-                    robot,
-                    self.master["object"].broadcast_address,
-                    pending_flag=True,
-                    retry_time=retry_time['second']
-                )
-                self.master["Lock"].release()
-
-                init_time = time.time()
-                delay = self.__select_delay__(min_delay, max_delay, True, step=step_novelty)
-
-                i = 1
-            elif i == 1:
-
-                all_received = False
-                while not all_received and self.read_executing():
-                    self.master["Lock"].acquire()
-                    all_received = not self.master["object"].there_are_pending_messages()
-                    self.master["Lock"].release()
-
-                    self.delay_no_blocking(1)
-
-                if not all_busy:
-                    self.master["Lock"].acquire()
-                    busy = self.master["object"].get_busy(robot, self.master["object"].broadcast_address)
-                    self.master["Lock"].release()
-
-                    all_busy = True
-
-                    for b in busy:
+                    floor = b["floor"]
+                    rob = b["platform"]
+                    
+                    if not self.check_robot_in_unavailable(floor, rob):
                         all_busy = b["busy"]
 
-                        if not all_busy:
-                            self.delay_no_blocking(1)
+                        if all_busy:
+                            self.delay_no_blocking(1, text="2nd last checking")
+                            print(elapsed)
+                            print(MINUTES_AFTER_CHECKING_PLATFORMS * 60)
                             break
-
-                if all_busy and time.time() > (init_time + delay):
-                    if right and robot == max_len or (not right and robot == 1):
-                        i = 2
-                        self.delay_no_blocking(3)
-                    else:
-                        i = 0
-                        robot = robot + 1 if right else robot - 1
-
-            elif i == 2:
-
-                self.master["Lock"].acquire()
-                busy = self.master["object"].get_busy(robot, self.master["object"].broadcast_address)
-                self.master["Lock"].release()
-
-                all_busy = True
-                for b in busy:
-                    all_busy = b["busy"]
-
-                    if all_busy:
-                        self.delay_no_blocking(1)
-                        break
 
                 if not all_busy:
                     self.set_executing(0)
@@ -374,59 +425,78 @@ class SequenceGenerator:
         already_selected = {}
 
         min_delay, max_delay, max_count, available_robots, retry_time = self.get_individual_data(4)
+        beginning = 0
+        count_times_check = 0
 
         while self.read_executing():
             allFree = True
+
+            if already_selected == available_robots:
+                if beginning == 0:
+                    beginning = time.time()
+
+                elapsed = time.time() - beginning
+
+                if elapsed > (MINUTES_AFTER_CHECKING_PLATFORMS * 60):
+                    beginning = time.time()
+                    count_times_check += 1
+                    if self.check_available_platforms(count_times_check):
+                        self.set_executing(0)
+                        break
 
             self.master["Lock"].acquire()
             busy_devices = self.master["object"].get_busy(0xFF, 0xFF)
             self.master["Lock"].release()
 
             for device in busy_devices:
-                if self.__check_two_levels_in_dictionary__(available_robots, device["floor"], device["platform"]):
-                    if not device["busy"]:
+                floor = device["floor"]
+                rob = device["platform"]
+                
+                if not self.check_robot_in_unavailable(floor, rob):
+                    if self.__check_two_levels_in_dictionary__(available_robots, device["floor"], device["platform"]):
+                        if not device["busy"]:
 
-                        if not (
-                                self.__check_two_levels_in_dictionary__(already_selected,
-                                                                        device["floor"],
-                                                                        device["platform"]
-                                                                        )
-                        ):
+                            if not (
+                                    self.__check_two_levels_in_dictionary__(already_selected,
+                                                                            device["floor"],
+                                                                            device["platform"]
+                                                                            )
+                            ):
 
-                            if not (device["floor"] in already_selected):
-                                already_selected[device["floor"]] = []
+                                if not (device["floor"] in already_selected):
+                                    already_selected[device["floor"]] = []
 
-                            already_selected[device["floor"]].append(device["platform"])
+                                already_selected[device["floor"]].append(device["platform"])
 
-                            if self.novelty_pop is None:
-                                movement = random.choice(self.options_copy[field_movement_type])
-                            else:
-                                print(len(self.options_copy[field_movement_type]))
-                                _, _, aux_mov = self.novelty_pop.transform_genome_into_usable_data(
-                                    len(self.options_copy[field_movement_type]),
-                                    sequence=4,
-                                    store_next_genome=True,
-                                    step=step_novelty
-                                )
-                                print(aux_mov)
-                                print(self.options_copy[field_movement_type])
+                                if self.novelty_pop is None:
+                                    movement = random.choice(self.options_copy[field_movement_type])
+                                else:
+                                    print(len(self.options_copy[field_movement_type]))
+                                    _, _, aux_mov = self.novelty_pop.transform_genome_into_usable_data(
+                                        len(self.options_copy[field_movement_type]),
+                                        sequence=4,
+                                        store_next_genome=True,
+                                        step=step_novelty
+                                    )
+                                    print(aux_mov)
+                                    print(self.options_copy[field_movement_type])
 
-                                movement = self.options_copy[field_movement_type][aux_mov]
+                                    movement = self.options_copy[field_movement_type][aux_mov]
 
-                            self.master["Lock"].acquire()
-                            self.master["object"].send_move_packet_process(movement,
-                                                                           device["platform"],
-                                                                           device["floor"],
-                                                                           pending_flag=True,
-                                                                           retry_time=retry_time['fourth'],
-                                                                           maxRetries=999)
-                            self.master["Lock"].release()
+                                self.master["Lock"].acquire()
+                                self.master["object"].send_move_packet_process(movement,
+                                                                               device["platform"],
+                                                                               device["floor"],
+                                                                               pending_flag=True,
+                                                                               retry_time=retry_time['fourth'],
+                                                                               maxRetries=999)
+                                self.master["Lock"].release()
 
-                            self.delay_no_blocking(0.1)
+                                self.delay_no_blocking(0.1)
+                                allFree = False
+
+                        else:
                             allFree = False
-
-                    else:
-                        allFree = False
 
                 if not self.read_executing():
                     break
@@ -518,9 +588,22 @@ class SequenceGenerator:
                 self.delay_no_blocking(3)
 
             all_busy = True
+            beginning = 0
+            count_retries = 0
             print("self.read_executing()")
             print(self.read_executing())
             while all_busy and self.read_executing():
+
+                if beginning == 0:
+                    beginning = time.time()
+
+                elapsed = time.time() - beginning
+
+                if elapsed > (MINUTES_AFTER_CHECKING_PLATFORMS * 60):
+                    beginning = time.time()
+                    count_retries += 1
+                    self.check_available_platforms(count_retries)
+
                 for floor in active_robots:
                     for robot in active_robots[floor]:
                         self.master["Lock"].acquire()
@@ -534,7 +617,6 @@ class SequenceGenerator:
                 else:
                     i += 1
                     print(f"iteration nº {i}")
-
 
         self.set_executing(0)
 
@@ -554,15 +636,46 @@ class SequenceGenerator:
         if self.stopped:
             self.stopped = False
 
+            self.threadingSafe["Lock"].acquire()
+            self.threadingSafe["value"] = 254
+            self.threadingSafe["Lock"].release()
+
             self.master["Lock"].acquire()
             self.master["object"].send_move_packet_process(
                 self.stop_mov,
-                self.master["object"].broadcast_address,
-                self.master["object"].broadcast_address,
+                0xFF,
+                0xFF,
                 pending_flag=True,
-                retry_time=self.options_copy[field_retry_time]['stop']
+                retry_time=self.options_copy[field_retry_time]['stop'],
+                maxRetries=4
             )
             self.master["Lock"].release()
+
+            if tools_BF.USE_THREAD:
+                all_received = False
+                while not all_received:
+                    self.master["Lock"].acquire()
+                    all_received = not self.master["object"].there_are_pending_messages()
+                    self.master["Lock"].release()
+
+                    self.delay_no_blocking(1)
+
+                all_busy = True
+                while all_busy:
+                    self.master["Lock"].acquire()
+                    busy = self.master["object"].get_busy(0xFF, self.master["object"].broadcast_address)
+                    self.master["Lock"].release()
+
+                    for b in busy:
+                        all_busy = b["busy"]
+
+                        if all_busy:
+                            self.delay_no_blocking(2)
+                            break
+
+            self.threadingSafe["Lock"].acquire()
+            self.threadingSafe["value"] = 0
+            self.threadingSafe["Lock"].release()
 
     def run_continue_sequences(self):
         while self.read_sequences_executing():
@@ -604,6 +717,9 @@ class SequenceGenerator:
 
     def stop_sequence(self, stop_mov, send_stop):
         self.set_sequences_executing(0)
+        self.master["Lock"].acquire()
+        self.master["object"].reset_list_pending_mess()
+        self.master["Lock"].release()
 
         if self.threading is not None:
             print("Not closed")
@@ -637,6 +753,7 @@ class SequenceGenerator:
         min_delay = self.options_copy[field_all_delays][str(sequence)]["min_delay"]
         max_count = self.options_copy[field_max_full_rep]
         available_robots = self.options_copy[field_available_robots]
+        print(f"available_robots, {available_robots}")
         timeout_retry = self.options_copy[field_retry_time]
 
         return min_delay, max_delay, max_count, available_robots, timeout_retry
@@ -647,6 +764,11 @@ class SequenceGenerator:
         else:
             delay = self.novelty_pop.transform_delta_value_delay(max_delay, min_delay, store_next, step=step,
                                                                  selectMax=smax)
+        # Redundant but just as a security measure
+        if delay > max_delay:
+            delay = max_delay
+        elif delay < min_delay:
+            delay = min_delay
 
         return delay
 
@@ -658,7 +780,8 @@ class SequenceGenerator:
 
         else:
             print(sequence)
-            _, _, selected_fl = self.novelty_pop.transform_genome_into_usable_data(len(list(available)), sequence=sequence,
+            _, _, selected_fl = self.novelty_pop.transform_genome_into_usable_data(len(list(available)),
+                                                                                   sequence=sequence,
                                                                                    store_next_genome=False,
                                                                                    step=False)
             floor = list(available)[selected_fl]
@@ -782,7 +905,6 @@ if __name__ == '__main__':
             time.sleep(10)
     except KeyboardInterrupt:
         print("+++++++++++++++++++++++++++++++")
-        # print(e)
         sequence.stop_sequence(254, False)
     except Exception as e:
         print("--------------------------------")

@@ -6,6 +6,7 @@ import json
 import tkinter as ttk
 
 FOLDER_STORED_DATA = "stored_data"
+USE_THREAD = False
 
 FILENAME_STORED_AVAILABLE_MOVEMENTS = "mov_info"
 EXTENSION_AVAILABLE_MOVEMENTS = ".json"
@@ -16,9 +17,11 @@ EXTENSION_STORED_PARAMETERS = ".json"
 FOLDER_IMAGES = "img"
 FILENAME_ARROW = "icons8-back-to-30.png"
 FILENAME_SAVE = "icons8-save-30.png"
-
+# EXCEL_FILENAME = "2022-07-08-btf-iterations.xlsx"
+EXCEL_FILENAME = "nbf archive data 2020-07-16 - 2020-09-12(1).xlsx"
 
 cwd = os.getcwd()
+root_project = os.path.abspath(os.path.join(cwd, os.pardir))
 
 # Communication defines
 baud_arduino = 9600
@@ -98,7 +101,7 @@ class ExcelLoader:
         # ]
 
         self.files = [
-            "nbf archive data 2020-07-16 - 2020-09-12(1).xlsx"
+            EXCEL_FILENAME
         ]
         self.selected = -1
 
@@ -107,7 +110,8 @@ class ExcelLoader:
         self.selected = select
 
         if 0 > select or len(self.files) <= select:
-            str_aux = 'The selected option must be 0' if len(self.files) == 1 else f"The selected option must be between 0 and {len(self.files) - 1}"
+            str_aux = 'The selected option must be 0' if len(self.files) == 1 else \
+                f"The selected option must be between 0 and {len(self.files) - 1}"
             raise ValueError(str_aux)
 
         full_path = os.path.join(self.excel_folder_name, self.files[select])
@@ -147,7 +151,8 @@ class HomeButton:
         path = get_full_path(FILENAME_ARROW, FOLDER_IMAGES)
         self.photo = ttk.PhotoImage(file=path)
 
-        self.b = ttk.Button(parent_frame, text="Home", image=self.photo, command=self.show_home if command is None else command)
+        self.b = ttk.Button(parent_frame, text="Home", image=self.photo,
+                            command=self.show_home if command is None else command)
         self.b.pack(in_=subparent_frame, side=ttk.LEFT, pady=30, padx=30)
 
     def show_home(self):
@@ -171,4 +176,3 @@ if __name__ == '__main__':
     excelData = excelLoader.loadExcel(selected_excel, selected_fields)
 
     print(excelData.keys())
-

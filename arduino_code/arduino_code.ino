@@ -7,6 +7,8 @@
 //#define SERIAL_DEBUG
 #define LOADING_DELAY 5000
 #define DELAY_NEXT_FREE_PACKET 10000
+#define TOP_FILTER_MOV_5 200
+#define LOW_FILTER_MOV_5 10
 
 #ifdef SERIAL_DEBUG
 SoftwareSerial xbee(2,3);
@@ -34,8 +36,8 @@ const int valve1 = 8;
 const int valve2 = 11;   
 const int valve3 = 10;
 const int valve4 = 9;
-const long int inflation_time_move_4 = 15000;
-const long int inflation_time_move_5 = 40000;
+const long int inflation_time_move_4 = 25000; //***Changed by Jonas 8-7-22 from 15000
+const long int inflation_time_move_5 = 75000; //***Changed by Jonas 8-7-22 from 40000
 bool req_pack_in_4_5 = false;
 
 //Data points from "Feeding the Algorithm performance" (2020)
@@ -255,6 +257,7 @@ void loop() {
 #ifdef SERIAL_DEBUG
               Serial.println("Stopped");
 #endif
+              platform.SendFreePacket();
               break;
           case 1:
 #ifdef SERIAL_DEBUG
@@ -843,7 +846,8 @@ void dataMove3short(){ //
   segment1 = rawData[0].first + 1; // Added 1 to prevent zero value
   segment2 = rawData[0].second + 1;
 
-  inflationTime = segment1 * 44 + 1000;
+  //  inflationTime = segment1 * 66 + 1000; //***Changed by Jonas 8-7-22 from "= segment1 * 44 + 1000"
+  inflationTime = 80000;//***Changed by Jonas 8-7-22
   inflationTime %= 25000;
 
   if (inflationTime < 5000) inflationTime = 5000;
@@ -913,15 +917,15 @@ void dataMove2(long totInflateTime){
         platform.CopyRawMessage(rawData, MAX_ITERATIONS_IN_3RD_MOVEMENT);
     }
     
-    inflationTime = (rawData[i].first + 1) * 100;
+    inflationTime = (rawData[i].first + 1) * 200; //***Changed by Jonas 8-7-22 from 100
     movement1(inflationTime, false);
     iterInflatedTime += inflationTime;
 
-    inflationTime = (rawData[i].second + 1) * 100;
+    inflationTime = (rawData[i].second + 1) * 200;//***Changed by Jonas 8-7-22 from 100
     movement1(inflationTime, false);
     iterInflatedTime += inflationTime;
 
-    inflationTime = (rawData[i].third + 1) * 100;
+    inflationTime = (rawData[i].third + 1) * 200;//***Changed by Jonas 8-7-22 from 100
     movement1(inflationTime, ((max_i - 1) == i) && (req_pack_in_4_5));
     iterInflatedTime += inflationTime;
 
@@ -971,20 +975,21 @@ void dataMove1(bool skinLayerAirIn, bool skinLayerPumpOn, bool erraticClicks, lo
 
       digitalWrite(valve1, LOW);
       digitalWrite(pump1, HIGH);
-      delay(segment1);
+      segment1 = delay_inflation_mov_5(segment1, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
+//       delay(segment1);
       inflatedTime=inflatedTime+segment1;
       digitalWrite(pump1, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
       digitalWrite(valve2, LOW);
       digitalWrite(pump2, HIGH);
-      delay(segment2);
+      segment2 = delay_inflation_mov_5(segment2, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment2;
       digitalWrite(pump2, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
 
@@ -998,20 +1003,20 @@ void dataMove1(bool skinLayerAirIn, bool skinLayerPumpOn, bool erraticClicks, lo
 
       digitalWrite(valve3, LOW);
       digitalWrite(pump3, HIGH);
-      delay(segment1);
+      segment1 = delay_inflation_mov_5(segment1, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment1;
       digitalWrite(pump3, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
       digitalWrite(valve1, LOW);
       digitalWrite(pump1, HIGH);
-      delay(segment2);
+      segment2 = delay_inflation_mov_5(segment2, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment2;
       digitalWrite(pump1, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
       //Third round of data inflations
@@ -1024,23 +1029,26 @@ void dataMove1(bool skinLayerAirIn, bool skinLayerPumpOn, bool erraticClicks, lo
 
       digitalWrite(valve2, LOW);
       digitalWrite(pump2, HIGH);
-      delay(segment1);
+      segment1 = delay_inflation_mov_5(segment1, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment1;
       digitalWrite(pump2, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
       digitalWrite(valve3, LOW);
       digitalWrite(pump3, HIGH);
-      delay(segment2);
+      segment2 = delay_inflation_mov_5(segment2, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment2;
       digitalWrite(pump3, LOW);
 
-      delay(segment3);
+      segment3 = delay_inflation_mov_5(segment3, TOP_FILTER_MOV_5, LOW_FILTER_MOV_5);
       inflatedTime=inflatedTime+segment3;
 
   }
+
+  //digitalWrite(pump4, HIGH); //***Changed by Jonas 8-7-22
+  //delay(24000); //***Changed by Jonas 8-7-22 
   digitalWrite(pump4, LOW);
 
   deflateAllSimul(40000, false);
