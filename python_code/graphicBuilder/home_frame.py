@@ -1,4 +1,4 @@
-çimport threading
+import threading
 import tkinter as tk
 import random
 
